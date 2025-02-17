@@ -122,7 +122,7 @@ export class EdgelessPageKeyboardManager extends PageKeyboardManager {
             tip: DEFAULT_NOTE_TIP,
           });
         },
-        p: () => {
+        b: () => {
           this._setEdgelessTool('brush');
         },
         e: () => {
