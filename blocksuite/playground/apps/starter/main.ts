@@ -2,35 +2,25 @@ import '../../style.css';
 
 import * as blockStd from '@blocksuite/block-std';
 import * as blocks from '@blocksuite/blocks';
-import {
-  CommunityCanvasTextFonts,
-  DocModeProvider,
-  FontConfigExtension,
-  ParseDocUrlProvider,
-  QuickSearchProvider,
-  RefNodeSlotsProvider,
-} from '@blocksuite/blocks';
 import { effects as blocksEffects } from '@blocksuite/blocks/effects';
 import * as globalUtils from '@blocksuite/global/utils';
-import * as editor from '@blocksuite/presets';
-import { effects as presetsEffects } from '@blocksuite/presets/effects';
-import type { ExtensionType } from '@blocksuite/store';
+import * as editor from '@blocksuite/integration-test';
+import { effects as presetsEffects } from '@blocksuite/integration-test/effects';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import * as store from '@blocksuite/store';
 
-import {
-  mockDocModeService,
-  mockEditorSetting,
-} from '../_common/mock-services.js';
 import { setupEdgelessTemplate } from '../_common/setup.js';
+import { effects as commentEffects } from '../comment/effects.js';
 import {
   createStarterDocCollection,
   initStarterDocCollection,
 } from './utils/collection.js';
-import { mountDefaultDocEditor } from './utils/editor.js';
+import { mountDefaultDocEditor } from './utils/setup-playground';
+import { prepareTestApp } from './utils/test';
 
 blocksEffects();
 presetsEffects();
+commentEffects();
 
 async function main() {
   if (window.collection) return;
@@ -50,24 +40,9 @@ async function main() {
         global: { utils: globalUtils },
         editor,
         blockStd: blockStd,
-        identifiers: {
-          QuickSearchProvider,
-          DocModeProvider,
-          RefNodeSlotsProvider,
-          ParseDocUrlService: ParseDocUrlProvider,
-        },
-        defaultExtensions: (): ExtensionType[] => [
-          FontConfigExtension(CommunityCanvasTextFonts),
-          blocks.EditorSettingExtension(mockEditorSetting()),
-        ],
-        extensions: {
-          FontConfigExtension: FontConfigExtension(CommunityCanvasTextFonts),
-        },
-        mockServices: {
-          mockDocModeService,
-        },
       }),
     });
+    await prepareTestApp(collection);
 
     return;
   }

@@ -12,6 +12,7 @@ import {
 import {
   downloadBlob,
   humanFileSize,
+  readImageSize,
   transformModel,
   withTempBlobData,
 } from '@blocksuite/affine-shared/utils';
@@ -425,27 +426,6 @@ export async function turnImageIntoCardView(
   transformModel(model, 'affine:attachment', attachmentProp);
 }
 
-export function readImageSize(file: File | Blob) {
-  return new Promise<{ width: number; height: number }>(resolve => {
-    const size = { width: 0, height: 0 };
-    const img = new Image();
-
-    img.onload = () => {
-      size.width = img.width;
-      size.height = img.height;
-      URL.revokeObjectURL(img.src);
-      resolve(size);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src);
-      resolve(size);
-    };
-
-    img.src = URL.createObjectURL(file);
-  });
-}
-
 export async function addImages(
   std: BlockStdScope,
   files: File[],
@@ -512,9 +492,17 @@ export async function addImages(
   // upload image data and update the image model
   const uploadPromises = imageFiles.map(async (file, index) => {
     const { point, blockId } = dropInfos[index];
+    const block = std.store.getBlock(blockId);
+    const imageSize = await readImageSize(file);
+
+    if (!imageSize.width || !imageSize.height) {
+      std.store.deleteBlock(block!.model);
+
+      toast(std.host, 'Failed to read image size, please try another image');
+      throw new Error('Failed to read image size');
+    }
 
     const sourceId = await std.store.blobSync.set(file);
-    const imageSize = await readImageSize(file);
 
     const center = Vec.toVec(point);
     // If maxWidth is provided, limit the width of the image to maxWidth

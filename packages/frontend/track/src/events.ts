@@ -60,7 +60,10 @@ type EditorEvents = 'bold' | 'italic' | 'underline' | 'strikeThrough';
 type SettingEvents =
   | 'openSettings'
   | 'changeAppSetting'
-  | 'changeEditorSetting';
+  | 'changeEditorSetting'
+  | 'recoverArchivedWorkspace'
+  | 'deleteArchivedWorkspace'
+  | 'deleteUnusedBlob';
 // END SECTION
 
 // SECTION: organize events
@@ -100,6 +103,10 @@ type ShareEvents =
   | 'copyShareLink'
   | 'openShareMenu'
   | 'share';
+type DocRoleEvents =
+  | 'modifyDocDefaultRole'
+  | 'modifyUserDocRole'
+  | 'inviteUserDocRole';
 type AuthEvents =
   | 'requestSignIn'
   | 'signIn'
@@ -144,6 +151,7 @@ type UserEvents =
   | CmdkEvents
   | OrganizeEvents
   | ShareEvents
+  | DocRoleEvents
   | AuthEvents
   | AccountEvents
   | PaymentEvents
@@ -173,7 +181,15 @@ const PageEvents = {
       auth: ['requestSignIn', 'signIn', 'signedIn', 'signInFail', 'signOut'],
     },
     sharePanel: {
-      $: ['createShareLink', 'copyShareLink', 'export', 'open'],
+      $: [
+        'createShareLink',
+        'copyShareLink',
+        'export',
+        'open',
+        'modifyDocDefaultRole',
+        'modifyUserDocRole',
+        'inviteUserDocRole',
+      ],
     },
     docInfoPanel: {
       $: ['open'],
@@ -182,7 +198,17 @@ const PageEvents = {
     },
     settingsPanel: {
       menu: ['openSettings'],
-      workspace: ['viewPlans', 'export', 'addProperty', 'editPropertyMeta'],
+      workspace: [
+        'viewPlans',
+        'export',
+        'addProperty',
+        'editPropertyMeta',
+        'deleteUnusedBlob',
+      ],
+      archivedWorkspaces: [
+        'recoverArchivedWorkspace',
+        'deleteArchivedWorkspace',
+      ],
       profileAndBadge: ['viewPlans'],
       accountUsage: ['viewPlans'],
       accountSettings: ['uploadAvatar', 'removeAvatar', 'updateUserName'],
@@ -404,6 +430,14 @@ type AttachmentEventArgs = {
   type: string; // file type
 };
 
+type DocRoleControlType =
+  | 'Owner'
+  | 'Editor'
+  | 'Manager'
+  | 'Reader'
+  | 'External'
+  | 'Remove';
+
 type TabActionControlType =
   | 'click'
   | 'dnd'
@@ -426,7 +460,7 @@ type SplitViewActionControlType = 'menu' | 'indicator';
 type SplitViewActionType = 'open' | 'close' | 'move' | 'closeOthers';
 
 type AuthArgs = {
-  method: 'password' | 'magic-link' | 'oauth';
+  method: 'password' | 'magic-link' | 'oauth' | 'otp';
   provider?: string;
 };
 
@@ -499,6 +533,12 @@ export type EventArgs = {
   openAttachmentInNewTab: AttachmentEventArgs;
   openAttachmentInPeekView: AttachmentEventArgs;
   openAttachmentInSplitView: AttachmentEventArgs;
+  modifyUserDocRole: {
+    control: DocRoleControlType;
+  };
+  inviteUserDocRole: {
+    control: 'member list';
+  };
 };
 
 // for type checking

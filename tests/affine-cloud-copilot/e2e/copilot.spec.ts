@@ -111,10 +111,10 @@ const collectChat = async (page: Page) => {
   }
   // wait ai response
   await page.waitForSelector('.chat-panel-messages .message chat-copy-more');
-  await page.waitForTimeout(ONE_SECOND);
+  await page.waitForTimeout(200);
   const lastMessage = await chatPanel.$$('.message').then(m => m[m.length - 1]);
   await lastMessage.waitForSelector('chat-copy-more');
-  await page.waitForTimeout(ONE_SECOND);
+  await page.waitForTimeout(200);
   return Promise.all(
     Array.from(await chatPanel.$$('.message')).map(async m => ({
       name: await m.$('.user-info').then(i => i?.innerText()),
@@ -436,7 +436,7 @@ test.describe('chat panel', () => {
     expect(editorContent).toBe(content);
   });
 
-  test('can be retry or discard chat in page mode', async ({ page }) => {
+  test('can regenerate chat in page mode', async ({ page }) => {
     await page.reload();
     await clickSideBarAllPageButton(page);
     await page.waitForTimeout(200);
@@ -467,13 +467,53 @@ test.describe('chat panel', () => {
         ).innerText()
       ).not.toBe(content);
     }
+  });
 
-    // discard
+  test('can discard chat in page mode', async ({ page }) => {
+    await page.reload();
+    await clickSideBarAllPageButton(page);
+    await page.waitForTimeout(200);
+    await createLocalWorkspace({ name: 'test' }, page);
+    await clickNewPageButton(page);
+    await focusToEditor(page);
+    await page.keyboard.type('/');
+    await page.getByTestId('sub-menu-0').getByText('Ask AI').click();
+    const input = await page.waitForSelector('ai-panel-input textarea');
+    await input.fill('hello');
+    await input.press('Enter');
+
+    // discard without confirm modal
     {
       const resp = await page.waitForSelector(
         'ai-panel-answer .response-list-container:last-child'
       );
       await (await resp.waitForSelector('.ai-item-discard')).click();
+      const editorContent = await getEditorContent(page);
+      expect(editorContent).toBe('');
+    }
+  });
+
+  test('can discard chat with confirm modal in edgeless mode', async ({
+    page,
+  }) => {
+    await page.reload();
+    await clickSideBarAllPageButton(page);
+    await page.waitForTimeout(200);
+    await createLocalWorkspace({ name: 'test' }, page);
+    await clickNewPageButton(page);
+    await focusToEditor(page);
+    await page.keyboard.type('/');
+    await page.getByTestId('sub-menu-0').getByText('Ask AI').click();
+    const input = await page.waitForSelector('ai-panel-input textarea');
+    await input.fill('hello');
+    await input.press('Enter');
+
+    // discard with confirm modal
+    {
+      await page.waitForSelector(
+        'ai-panel-answer .response-list-container:last-child'
+      );
+      await page.mouse.click(100, 100);
       await page.getByTestId('confirm-modal-confirm').click();
       const editorContent = await getEditorContent(page);
       expect(editorContent).toBe('');
@@ -512,6 +552,45 @@ test.describe('chat panel', () => {
       content: 'What is the weather in Shanghai today?',
     });
     expect(history[1].name).toBe('AFFiNE AI');
+    expect(await page.locator('chat-panel affine-footnote-node').count()).toBe(
+      0
+    );
+  });
+
+  test('can identify shape color, even if network search is active', async ({
+    page,
+  }) => {
+    await page.reload();
+    await clickSideBarAllPageButton(page);
+    await page.waitForTimeout(200);
+    await createLocalWorkspace({ name: 'test' }, page);
+    await clickNewPageButton(page);
+
+    await openChat(page);
+    await page.getByTestId('chat-network-search').click();
+
+    await switchToEdgelessMode(page);
+
+    const shapeButton = await page.waitForSelector(
+      'edgeless-shape-tool-button'
+    );
+    await shapeButton.click();
+    await page.mouse.click(400, 400);
+
+    const askAIButton = await page.waitForSelector('.copilot-icon-button');
+    await askAIButton.click();
+
+    await page.waitForTimeout(1000);
+    await page.keyboard.type('What color is this shape?');
+    await page.keyboard.press('Enter');
+
+    const history = await collectChat(page);
+    expect(history[0]).toEqual({
+      name: 'You',
+      content: 'What color is this shape?',
+    });
+    expect(history[1].name).toBe('AFFiNE AI');
+    expect(history[1].content).toContain('yellow');
     expect(await page.locator('chat-panel affine-footnote-node').count()).toBe(
       0
     );
@@ -727,7 +806,7 @@ test.describe('chat with block', () => {
           .waitForSelector('.ai-item-continue-with-ai')
           .then(i => i.click());
         await page
-          .waitForSelector('chat-panel-input .chat-panel-images')
+          .waitForSelector('chat-panel-input image-preview-grid')
           .then(el => el.waitForElementState('visible'));
       });
     });
@@ -827,8 +906,19 @@ test.describe('chat with doc', () => {
     await clickNewPageButton(page);
 
     await openChat(page);
-    const chipTitle = await page.getByTestId('chat-panel-chip-title');
+
+    const addButton = await page.locator('chat-panel-chips .add-button');
+    await addButton.click();
+    const docItem = await page.locator('chat-panel-add-popover icon-button', {
+      hasText: 'Untitled',
+    });
+    await docItem.click();
+    await page.waitForTimeout(200);
+    let chipTitle = await page.getByTestId('chat-panel-chip-title');
     expect(await chipTitle.textContent()).toBe('Untitled');
+    let chip = await page.getByTestId('chat-panel-chip');
+    // oxlint-disable-next-line unicorn/prefer-dom-node-dataset
+    expect(await chip.getAttribute('data-state')).toBe('success');
 
     const editorTitle = await page.locator('doc-title .inline-editor').nth(0);
     await editorTitle.pressSequentially('AFFiNE AI', {
@@ -849,11 +939,6 @@ test.describe('chat with doc', () => {
     );
 
     expect(await chipTitle.textContent()).toBe('AFFiNE AI');
-    const chip = await page.getByTestId('chat-panel-chip');
-    // oxlint-disable-next-line unicorn/prefer-dom-node-dataset
-    expect(await chip.getAttribute('data-state')).toBe('candidate');
-    await chip.click();
-    await page.waitForTimeout(1000);
     // oxlint-disable-next-line unicorn/prefer-dom-node-dataset
     expect(await chip.getAttribute('data-state')).toBe('success');
 
@@ -872,7 +957,7 @@ test.describe('chat with doc', () => {
     expect((await collectChat(page)).length).toBe(0);
 
     await page.reload();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(200);
     await openChat(page);
     expect(await chipTitle.textContent()).toBe('AFFiNE AI');
     const chip2 = await page.getByTestId('chat-panel-chip');

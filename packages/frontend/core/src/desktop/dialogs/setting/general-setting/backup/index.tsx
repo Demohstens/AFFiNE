@@ -16,6 +16,7 @@ import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hoo
 import { useNavigateHelper } from '@affine/core/components/hooks/use-navigate-helper';
 import { BackupService } from '@affine/core/modules/backup/services';
 import { i18nTime, useI18n } from '@affine/i18n';
+import track from '@affine/track';
 import {
   DeleteIcon,
   LocalWorkspaceIcon,
@@ -78,6 +79,7 @@ const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
 
   const handleImport = useAsyncCallback(async () => {
     setImporting(true);
+    track.$.settingsPanel.archivedWorkspaces.recoverArchivedWorkspace();
     const workspaceId = await backupService.recoverBackupWorkspace(item.dbPath);
     if (!workspaceId) {
       setImporting(false);
@@ -104,6 +106,7 @@ const BackupWorkspaceItem = ({ item }: { item: BackupWorkspaceItem }) => {
         title: t['com.affine.workspaceDelete.title'](),
         children: t['com.affine.settings.workspace.backup.delete.warning'](),
         onConfirm: async () => {
+          track.$.settingsPanel.archivedWorkspaces.deleteArchivedWorkspace();
           await backupService.deleteBackupWorkspace(backupWorkspaceId);
           notify.success({
             title: t['com.affine.settings.workspace.backup.delete.success'](),
@@ -211,8 +214,8 @@ export const BackupSettingPanel = () => {
         />
       );
     }
-    if (backupWorkspaces?.items.length === 0 || !backupWorkspaces) {
-      return <Empty />;
+    if (!backupWorkspaces) {
+      return null;
     }
     return (
       <>
@@ -239,6 +242,9 @@ export const BackupSettingPanel = () => {
     );
   }, [isLoading, backupWorkspaces, pageNum]);
 
+  const isEmpty =
+    (backupWorkspaces?.items.length === 0 || !backupWorkspaces) && !isLoading;
+
   return (
     <>
       <SettingHeader
@@ -246,7 +252,11 @@ export const BackupSettingPanel = () => {
         subtitle={t['com.affine.settings.workspace.backup.subtitle']()}
         data-testid="backup-title"
       />
-      <div className={styles.listContainer}>{innerElement}</div>
+      {isEmpty ? (
+        <Empty />
+      ) : (
+        <div className={styles.listContainer}>{innerElement}</div>
+      )}
     </>
   );
 };

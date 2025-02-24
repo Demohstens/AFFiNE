@@ -19,6 +19,8 @@ interface TestingAppMetadata extends ModuleMetadata {
 
 export type TestUser = Omit<User, 'password'> & { password: string };
 
+const OneMB = 1024 * 1024;
+
 export async function createTestingApp(
   moduleDef: TestingAppMetadata = {}
 ): Promise<TestingApp> {
@@ -29,9 +31,9 @@ export async function createTestingApp(
     bodyParser: true,
     rawBody: true,
   });
-  if (AFFiNE.flavor.doc) {
-    app.useBodyParser('raw');
-  }
+
+  app.useBodyParser('raw', { limit: 1 * OneMB });
+
   const logger = new AFFiNELogger();
 
   logger.setLogLevels([TEST_LOG_LEVEL]);
@@ -40,7 +42,7 @@ export async function createTestingApp(
   app.useGlobalFilters(new GlobalExceptionFilter(app.getHttpAdapter()));
   app.use(
     graphqlUploadExpress({
-      maxFileSize: 10 * 1024 * 1024,
+      maxFileSize: 10 * OneMB,
       maxFiles: 5,
     })
   );

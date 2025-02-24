@@ -1,7 +1,7 @@
 import { Menu, MenuItem, MenuTrigger, notify } from '@affine/component';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
 import { ShareInfoService } from '@affine/core/modules/share-doc';
-import { PublicDocMode } from '@affine/graphql';
+import { PublicDocMode, UserFriendlyError } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import track from '@affine/track';
 import {
@@ -73,18 +73,12 @@ export const PublicDoc = ({ disabled }: { disabled?: boolean }) => {
         style: 'normal',
         icon: <SingleSelectCheckSolidIcon color={cssVar('primaryColor')} />,
       });
-    } catch (err) {
+    } catch (error) {
+      const err = UserFriendlyError.fromAnyError(error);
       notify.error({
-        title:
-          t[
-            'com.affine.share-menu.confirm-modify-mode.notification.fail.title'
-          ](),
-        message:
-          t[
-            'com.affine.share-menu.confirm-modify-mode.notification.fail.message'
-          ](),
+        title: err.name,
+        message: err.message,
       });
-      console.error(err);
     }
   }, [isSharedPage, shareInfoService.shareInfo, t]);
 
@@ -95,9 +89,11 @@ export const PublicDoc = ({ disabled }: { disabled?: boolean }) => {
       </div>
       {disabled ? (
         <div className={clsx(styles.menuTriggerStyle, 'disable')}>
-          {isSharedPage
-            ? t['com.affine.share-menu.option.link.readonly']()
-            : t['com.affine.share-menu.option.link.no-access']()}
+          <div className={styles.menuTriggerText}>
+            {isSharedPage
+              ? t['com.affine.share-menu.option.link.readonly']()
+              : t['com.affine.share-menu.option.link.no-access']()}
+          </div>
         </div>
       ) : (
         <Menu
@@ -134,6 +130,7 @@ export const PublicDoc = ({ disabled }: { disabled?: boolean }) => {
             className={styles.menuTriggerStyle}
             data-testid="share-link-menu-trigger"
             variant="plain"
+            suffixClassName={styles.suffixClassName}
             contentStyle={{
               width: '100%',
             }}

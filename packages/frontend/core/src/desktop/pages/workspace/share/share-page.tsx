@@ -1,5 +1,6 @@
 import { Scrollable } from '@affine/component';
-import { EditorOutlineViewer } from '@affine/core/components/blocksuite/outline-viewer';
+import type { AffineEditorContainer } from '@affine/core/blocksuite/block-suite-editor';
+import { EditorOutlineViewer } from '@affine/core/blocksuite/outline-viewer';
 import { useActiveBlocksuiteEditor } from '@affine/core/components/hooks/use-block-suite-editor';
 import { usePageDocumentTitle } from '@affine/core/components/hooks/use-global-state';
 import { useNavigateHelper } from '@affine/core/components/hooks/use-navigate-helper';
@@ -26,7 +27,6 @@ import {
   RefNodeSlotsProvider,
 } from '@blocksuite/affine/blocks';
 import { DisposableGroup } from '@blocksuite/affine/global/utils';
-import type { AffineEditorContainer } from '@blocksuite/affine/presets';
 import { Logo1Icon } from '@blocksuite/icons/rc';
 import { FrameworkScope, useLiveData, useService } from '@toeverything/infra';
 import clsx from 'clsx';
@@ -268,7 +268,7 @@ const SharePageInner = ({
                 <Scrollable.Scrollbar />
               </Scrollable.Root>
               <EditorOutlineViewer
-                editor={editorContainer}
+                editor={editorContainer?.host ?? null}
                 show={publishMode === 'page'}
               />
               {!BUILD_CONFIG.isElectron && <SharePageFooter />}

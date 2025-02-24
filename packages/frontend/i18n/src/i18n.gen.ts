@@ -1216,6 +1216,10 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.auth.sign.in.sent.email.subtitle"](): string;
     /**
+      * `Self-Hosted`
+      */
+    ["com.affine.auth.sign.add-selfhosted.title"](): string;
+    /**
       * `Connect to a Self-Hosted Instance`
       */
     ["com.affine.auth.sign.add-selfhosted"](): string;
@@ -4302,6 +4306,14 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.split-view-drag-handle.tooltip"](): string;
     /**
+      * `Split view does not support folders.`
+      */
+    ["com.affine.split-view-folder-warning.description"](): string;
+    /**
+      * `Do not show this again`
+      */
+    ["do-not-show-this-again"](): string;
+    /**
       * `New`
       */
     ["com.affine.quicksearch.group.creation"](): string;
@@ -5330,14 +5342,6 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.settings.workspace.experimental-features.enable-mind-map-import.description"](): string;
     /**
-      * `Split View`
-      */
-    ["com.affine.settings.workspace.experimental-features.enable-multi-view.name"](): string;
-    /**
-      * `The Split View feature enables you to divide your tab into multiple sections for simultaneous viewing and editing of different documents.`
-      */
-    ["com.affine.settings.workspace.experimental-features.enable-multi-view.description"](): string;
-    /**
       * `Emoji Folder Icon`
       */
     ["com.affine.settings.workspace.experimental-features.enable-emoji-folder-icon.name"](): string;
@@ -5433,14 +5437,6 @@ export function useAFFiNEI18N(): {
       * `Once enabled, you can preview PDF in embed view.`
       */
     ["com.affine.settings.workspace.experimental-features.enable-pdf-embed-preview.description"](): string;
-    /**
-      * `Page Block Header`
-      */
-    ["com.affine.settings.workspace.experimental-features.enable-page-block-header.name"](): string;
-    /**
-      * `Once enabled, the header of page block will be displayed.`
-      */
-    ["com.affine.settings.workspace.experimental-features.enable-page-block-header.description"](): string;
     /**
       * `Editor RTL`
       */
@@ -5712,19 +5708,19 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.settings.workspace.affine-ai.description"](): string;
     /**
-      * `Achieved workspaces`
+      * `Archived workspaces`
       */
     ["com.affine.settings.workspace.backup"](): string;
     /**
-      * `Management in local workspace backup files`
+      * `Manage archived local workspace files`
       */
     ["com.affine.settings.workspace.backup.subtitle"](): string;
     /**
-      * `No backup files found`
+      * `No archived workspace files found`
       */
     ["com.affine.settings.workspace.backup.empty"](): string;
     /**
-      * `Delete backup workspace`
+      * `Delete archived workspace`
       */
     ["com.affine.settings.workspace.backup.delete"](): string;
     /**
@@ -5794,14 +5790,6 @@ export function useAFFiNEI18N(): {
       * `Shared doc`
       */
     ["com.affine.share-menu.SharedPage"](): string;
-    /**
-      * `Please try again later.`
-      */
-    ["com.affine.share-menu.confirm-modify-mode.notification.fail.message"](): string;
-    /**
-      * `Failed to modify`
-      */
-    ["com.affine.share-menu.confirm-modify-mode.notification.fail.title"](): string;
     /**
       * `Copy Link`
       */
@@ -6930,6 +6918,10 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.page-starter-bar.edgeless"](): string;
     /**
+      * `Tips`
+      */
+    tips(): string;
+    /**
       * `Template`
       */
     Template(): string;
@@ -7029,6 +7021,13 @@ export function useAFFiNEI18N(): {
       * `Bad request.`
       */
     ["error.BAD_REQUEST"](): string;
+    /**
+      * `GraphQL bad request, code: {{code}}, {{message}}`
+      */
+    ["error.GRAPHQL_BAD_REQUEST"](options: Readonly<{
+        code: string;
+        message: string;
+    }>): string;
     /**
       * `Query is too long, max length is {{max}}.`
       */
@@ -7192,11 +7191,11 @@ export function useAFFiNEI18N(): {
         spaceId: string;
     }>): string;
     /**
-      * `You do not have permission to access doc {{docId}} under Space {{spaceId}}.`
+      * `You do not have permission to perform {{action}} action on doc {{docId}}.`
       */
-    ["error.DOC_ACCESS_DENIED"](options: Readonly<{
+    ["error.DOC_ACTION_DENIED"](options: Readonly<{
+        action: string;
         docId: string;
-        spaceId: string;
     }>): string;
     /**
       * `Your client with version {{version}} is rejected by remote sync server. Please upgrade to {{serverVersion}}.`
@@ -7374,6 +7373,12 @@ export function useAFFiNEI18N(): {
       */
     ["error.COPILOT_ACTION_TAKEN"](): string;
     /**
+      * `Doc {{docId}} not found.`
+      */
+    ["error.COPILOT_DOC_NOT_FOUND"](options: {
+        readonly docId: string;
+    }): string;
+    /**
       * `Copilot message {{messageId}} not found.`
       */
     ["error.COPILOT_MESSAGE_NOT_FOUND"](options: {
@@ -7498,6 +7503,13 @@ export function useAFFiNEI18N(): {
     ["error.WORKSPACE_MEMBERS_EXCEED_LIMIT_TO_DOWNGRADE"](options: {
         readonly limit: string;
     }): string;
+    /**
+      * `Unsupported client with version [{{clientVersion}}], required version is [{{requiredVersion}}].`
+      */
+    ["error.UNSUPPORTED_CLIENT_VERSION"](options: Readonly<{
+        clientVersion: string;
+        requiredVersion: string;
+    }>): string;
 } { const { t } = useTranslation(); return useMemo(() => createProxy((key) => t.bind(null, key)), [t]); }
 function createComponent(i18nKey: string) {
     return (props) => createElement(Trans, { i18nKey, shouldUnescape: true, ...props });

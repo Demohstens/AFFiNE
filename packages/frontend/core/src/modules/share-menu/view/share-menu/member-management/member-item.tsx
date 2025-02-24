@@ -9,7 +9,6 @@ import {
   useConfirmModal,
 } from '@affine/component';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
-import { AuthService } from '@affine/core/modules/cloud';
 import { DocService } from '@affine/core/modules/doc';
 import {
   DocGrantedUsersService,
@@ -19,6 +18,7 @@ import {
 } from '@affine/core/modules/permissions';
 import { DocRole, UserFriendlyError } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
+import track from '@affine/track';
 import { useLiveData, useService } from '@toeverything/infra';
 import clsx from 'clsx';
 import { useCallback, useMemo } from 'react';
@@ -30,16 +30,15 @@ export const MemberItem = ({
   openPaywallModal,
   hittingPaywall,
   grantedUser,
+  canManageUsers,
 }: {
   grantedUser: GrantedUser;
   hittingPaywall: boolean;
+  canManageUsers: boolean;
   openPaywallModal: () => void;
 }) => {
   const user = grantedUser.user;
-  const session = useService(AuthService).session;
-  const account = useLiveData(session.account$);
-  const disableManage =
-    account?.id === user.id || grantedUser.role === DocRole.Owner;
+  const disableManage = grantedUser.role === DocRole.Owner || !canManageUsers;
 
   const role = useMemo(() => {
     switch (grantedUser.role) {
@@ -148,6 +147,7 @@ const Options = ({
 
   const updateUserRole = useCallback(
     async (userId: string, role: DocRole) => {
+      track.$.sharePanel.$.modifyUserDocRole({ control: role });
       try {
         const res = await docGrantedUsersService.updateUserRole(userId, role);
         if (res) {
@@ -214,6 +214,7 @@ const Options = ({
   }, [changeToOwner, openConfirmModal, t]);
 
   const removeMember = useAsyncCallback(async () => {
+    track.$.sharePanel.$.modifyUserDocRole({ control: 'Remove' });
     try {
       await docGrantedUsersService.revokeUsersRole(userId);
       docGrantedUsersService.loadMore();

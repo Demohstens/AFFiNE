@@ -20,15 +20,12 @@ class AFFiNEViewController: CAPBridgeViewController {
   }
   
   override func webView(with frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
-    configuration.setURLSchemeHandler(AffineHttpHandler(), forURLScheme: "affine-http")
-    configuration.setURLSchemeHandler(AffineHttpHandler(), forURLScheme: "affine-https")
-    configuration.setURLSchemeHandler(AffineWsHandler(), forURLScheme: "affine-ws")
-    configuration.setURLSchemeHandler(AffineWsHandler(), forURLScheme: "affine-wss")
     return super.webView(with: frame, configuration: configuration)
 }
 
   override func capacitorDidLoad() {
     let plugins: [CAPPlugin] = [
+      AuthPlugin(),
       CookiePlugin(),
       HashcashPlugin(),
       NavigationGesturePlugin(),

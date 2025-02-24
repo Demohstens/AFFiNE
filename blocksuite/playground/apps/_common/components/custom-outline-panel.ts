@@ -1,6 +1,6 @@
 import { ShadowlessElement } from '@blocksuite/block-std';
 import { WithDisposable } from '@blocksuite/global/utils';
-import type { AffineEditorContainer } from '@blocksuite/presets';
+import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
 import { css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
@@ -22,7 +22,7 @@ export class CustomOutlinePanel extends WithDisposable(ShadowlessElement) {
 
   private _renderPanel() {
     return html`<affine-outline-panel
-      .editor=${this.editor}
+      .editor=${this.editor.host}
       .fitPadding=${[50, 360, 50, 50]}
     ></affine-outline-panel>`;
   }
@@ -45,7 +45,7 @@ export class CustomOutlinePanel extends WithDisposable(ShadowlessElement) {
   private accessor _show = false;
 
   @property({ attribute: false })
-  accessor editor!: AffineEditorContainer;
+  accessor editor!: TestAffineEditorContainer;
 }
 
 declare global {

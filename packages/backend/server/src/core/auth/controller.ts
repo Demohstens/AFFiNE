@@ -79,6 +79,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseNamedGuard('version')
   @Post('/preflight')
   async preflight(
     @Body() params?: { email: string }
@@ -108,7 +109,7 @@ export class AuthController {
   }
 
   @Public()
-  @UseNamedGuard('captcha')
+  @UseNamedGuard('version', 'captcha')
   @Post('/sign-in')
   @Header('content-type', 'application/json')
   async signIn(
@@ -260,6 +261,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseNamedGuard('version')
   @Post('/magic-link')
   async magicLinkSignIn(
     @Req() req: Request,
@@ -297,6 +299,7 @@ export class AuthController {
     res.send({ id: user.id });
   }
 
+  @UseNamedGuard('version')
   @Throttle('default', { limit: 1200 })
   @Public()
   @Get('/session')

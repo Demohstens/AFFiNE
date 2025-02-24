@@ -13,7 +13,7 @@
     "@blocksuite/block-std": "workspace:*",
     "@blocksuite/global": "workspace:*",
     "@blocksuite/inline": "workspace:*",
-    "@blocksuite/presets": "workspace:*",
+    "@blocksuite/integration-test": "workspace:*",
     "@blocksuite/store": "workspace:*",
     "@playwright/test": "=1.50.1",
     "@toeverything/theme": "^1.1.7"
@@ -29,5 +29,5 @@
     "type": "git",
     "url": "https://github.com/toeverything/blocksuite.git"
   },
-  "version": "0.19.0"
+  "version": "0.20.0"
 }

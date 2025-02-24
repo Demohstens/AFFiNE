@@ -18,6 +18,7 @@ import {
   getOptionalModuleMetadata,
   getRequestIdFromHost,
   getRequestIdFromRequest,
+  ScannerModule,
 } from './base';
 import { CacheModule } from './base/cache';
 import { AFFiNEConfig, ConfigModule, mergeConfigOverride } from './base/config';
@@ -25,6 +26,7 @@ import { ErrorModule } from './base/error';
 import { EventModule } from './base/event';
 import { GqlModule } from './base/graphql';
 import { HelpersModule } from './base/helpers';
+import { JobModule } from './base/job';
 import { LoggerModule } from './base/logger';
 import { MailModule } from './base/mailer';
 import { MetricsModule } from './base/metrics';
@@ -47,6 +49,7 @@ import { SelfhostModule } from './core/selfhost';
 import { StorageModule } from './core/storage';
 import { SyncModule } from './core/sync';
 import { UserModule } from './core/user';
+import { VersionModule } from './core/version';
 import { WorkspaceModule } from './core/workspaces';
 import { ModelsModule } from './models';
 import { REGISTERED_PLUGINS } from './plugins';
@@ -89,6 +92,7 @@ export const FunctionalityModules = [
   }),
   ConfigModule.forRoot(),
   RuntimeModule,
+  ScannerModule,
   EventModule,
   RedisModule,
   CacheModule,
@@ -102,6 +106,7 @@ export const FunctionalityModules = [
   ErrorModule,
   LoggerModule,
   WebSocketModule,
+  JobModule.forRoot(),
 ];
 
 function filterOptionalModule(
@@ -221,6 +226,7 @@ export function buildAppModule() {
     // graphql server only
     .useIf(
       config => config.flavor.graphql,
+      VersionModule,
       GqlModule,
       StorageModule,
       ServerConfigModule,

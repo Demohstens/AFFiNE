@@ -12,10 +12,10 @@ import { ifDefined } from 'lit/directives/if-defined.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
 import { MoreIndicator } from './components/more-indicator';
+import { NoteConfigExtension } from './config';
 import { NoteBlockComponent } from './note-block';
 import { ACTIVE_NOTE_EXTRA_PADDING } from './note-edgeless-block.css';
 import * as styles from './note-edgeless-block.css';
-import { isPageBlock } from './utils';
 
 export const AFFINE_EDGELESS_NOTE = 'affine-edgeless-note';
 
@@ -219,6 +219,9 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
       ? this._noteFullHeight < height
       : !!collapsedHeight && collapsedHeight < height;
 
+    const hasHeader = !!this.std.getOptional(NoteConfigExtension.identifier)
+      ?.edgelessNoteHeader;
+
     return html`
       <div
         class=${styles.edgelessNoteContainer}
@@ -257,10 +260,11 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
           .model=${this.model}
           .host=${this.host}
           .zoom=${this.gfx.viewport.zoom ?? 1}
+          .disableMask=${this.hideMask}
           .editing=${this._editing}
         ></edgeless-note-mask>
 
-        ${isCollapsable && !isPageBlock(this.std, this.model)
+        ${isCollapsable && (!this.model.isPageBlock() || !hasHeader)
           ? html`<div
               class="${classMap({
                 [styles.collapseButton]: true,
@@ -293,6 +297,9 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
 
   @state()
   private accessor _noteFullHeight = 0;
+
+  @state()
+  accessor hideMask = false;
 
   @query(`.${styles.clipContainer} > div`)
   private accessor _noteContent: HTMLElement | null = null;

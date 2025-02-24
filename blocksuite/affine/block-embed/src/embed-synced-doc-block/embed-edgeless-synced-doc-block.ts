@@ -70,7 +70,7 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
             <div class="affine-page-viewport" data-theme=${appTheme}>
               ${new BlockStdScope({
                 store: syncedDoc,
-                extensions: this._buildPreviewSpec('page:preview'),
+                extensions: this._buildPreviewSpec('preview:page'),
               }).render()}
             </div>
           `,
@@ -81,7 +81,7 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
             <div class="affine-edgeless-viewport" data-theme=${edgelessTheme}>
               ${new BlockStdScope({
                 store: syncedDoc,
-                extensions: this._buildPreviewSpec('edgeless:preview'),
+                extensions: this._buildPreviewSpec('preview:edgeless'),
               }).render()}
             </div>
           `,
@@ -164,7 +164,7 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
     this.cardStyleMap = {
       display: 'block',
       width: `${EMBED_CARD_WIDTH[style]}px`,
-      height: `${EMBED_CARD_WIDTH[style]}px`,
+      height: `${EMBED_CARD_HEIGHT[style]}px`,
       transform: `scale(${bound.w / EMBED_CARD_WIDTH[style]}, ${bound.h / EMBED_CARD_HEIGHT[style]})`,
       transformOrigin: '0 0',
     };

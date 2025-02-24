@@ -16,6 +16,7 @@ export const copyLinkContainerStyle = style({
 export const copyLinkButtonStyle = style({
   flex: 1,
   padding: '4px 12px',
+  height: '30px',
   paddingRight: '6px',
   borderRadius: '4px',
   borderRight: 'none',
@@ -72,6 +73,7 @@ export const copyLinkShortcutStyle = style({
 export const copyLinkTriggerStyle = style({
   padding: '4px 12px 4px 8px',
   borderRadius: '4px',
+  height: '30px',
   borderLeft: 'none',
   borderTopLeftRadius: '0',
   borderBottomLeftRadius: '0',

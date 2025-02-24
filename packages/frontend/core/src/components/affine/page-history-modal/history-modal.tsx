@@ -32,12 +32,9 @@ import {
 } from 'react';
 import { encodeStateAsUpdate } from 'yjs';
 
+import { BlockSuiteEditor } from '../../../blocksuite/block-suite-editor';
+import { PureEditorModeSwitch } from '../../../blocksuite/block-suite-mode-switch';
 import { pageHistoryModalAtom } from '../../atoms/page-history';
-import {
-  BlockSuiteEditor,
-  CustomEditorWrapper,
-} from '../../blocksuite/block-suite-editor';
-import { PureEditorModeSwitch } from '../../blocksuite/block-suite-mode-switch';
 import { AffineErrorBoundary } from '../affine-error-boundary';
 import {
   historyListGroupByDay,
@@ -134,14 +131,12 @@ const HistoryEditorPreview = ({
           <AffineErrorBoundary>
             <Scrollable.Root>
               <Scrollable.Viewport className="affine-page-viewport">
-                <CustomEditorWrapper>
-                  <BlockSuiteEditor
-                    className={styles.editor}
-                    mode={mode}
-                    page={snapshotPage}
-                    readonly={true}
-                  />
-                </CustomEditorWrapper>
+                <BlockSuiteEditor
+                  className={styles.editor}
+                  mode={mode}
+                  page={snapshotPage}
+                  readonly={true}
+                />
               </Scrollable.Viewport>
               <Scrollable.Scrollbar />
             </Scrollable.Root>

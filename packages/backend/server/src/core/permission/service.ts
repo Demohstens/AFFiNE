@@ -5,7 +5,7 @@ import { groupBy } from 'lodash-es';
 
 import {
   CanNotBatchGrantDocOwnerPermissions,
-  DocAccessDenied,
+  DocActionDenied,
   EventBus,
   OnEvent,
   SpaceAccessDenied,
@@ -552,7 +552,7 @@ export class PermissionService {
     user?: string
   ) {
     if (!(await this.tryCheckPage(ws, page, action, user))) {
-      throw new DocAccessDenied({ spaceId: ws, docId: page });
+      throw new DocActionDenied({ spaceId: ws, docId: page, action });
     }
   }
 
@@ -613,6 +613,8 @@ export class PermissionService {
         }),
       ]);
 
+      const defaultPageRole = pageEntity?.defaultRole ?? DocRole.Manager;
+
       if (
         // Page role exists, check it first
         (roleEntity && roleEntity.type >= role) ||
@@ -625,7 +627,7 @@ export class PermissionService {
           workspaceRoleEntity.type !== WorkspaceRole.External &&
           Math.max(
             roleEntity?.type ?? Number.MIN_SAFE_INTEGER,
-            pageEntity?.defaultRole ?? Number.MIN_SAFE_INTEGER
+            defaultPageRole
           ) >= role)
       ) {
         return true;
@@ -638,9 +640,7 @@ export class PermissionService {
           ? WorkspaceRole[workspaceRoleEntity.type]
           : undefined,
         pageRole: roleEntity ? DocRole[roleEntity.type] : undefined,
-        pageDefaultRole: pageEntity
-          ? DocRole[pageEntity.defaultRole]
-          : undefined,
+        pageDefaultRole: DocRole[defaultPageRole],
         requiredRole: DocRole[role],
         action,
       };

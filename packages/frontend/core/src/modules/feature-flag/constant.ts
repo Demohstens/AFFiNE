@@ -222,26 +222,6 @@ export const AFFINE_FLAGS = {
     configurable: !isMobile,
     defaultState: false,
   },
-  // TODO(@CatsJuice): remove this flag when ready
-  enable_template_doc: {
-    category: 'affine',
-    displayName: 'Enable template doc',
-    description:
-      'Allow users to mark a doc as a template, and create new docs from it',
-    configurable: true,
-    defaultState: isCanaryBuild,
-  },
-  // TODO(@L-Sun): remove this flag when ready
-  enable_page_block: {
-    category: 'blocksuite',
-    bsFlag: 'enable_page_block',
-    displayName:
-      'com.affine.settings.workspace.experimental-features.enable-page-block-header.name',
-    description:
-      'com.affine.settings.workspace.experimental-features.enable-page-block-header.description',
-    configurable: isCanaryBuild,
-    defaultState: isCanaryBuild,
-  },
   enable_editor_rtl: {
     category: 'affine',
     displayName:
@@ -251,11 +231,11 @@ export const AFFINE_FLAGS = {
     configurable: isCanaryBuild,
     defaultState: false,
   },
-  enable_ios_ai_button: {
+  enable_mobile_ai_button: {
     category: 'affine',
     displayName: 'Enable AI Button',
-    description: 'Enable AI Button on iOS',
-    configurable: BUILD_CONFIG.isIOS,
+    description: 'Enable AI Button on mobile',
+    configurable: BUILD_CONFIG.isMobileEdition,
     defaultState: false,
   },
 } satisfies { [key in string]: FlagInfo };

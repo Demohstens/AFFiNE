@@ -1,5 +1,5 @@
-import { ChatPanel } from '@affine/core/blocksuite/presets/ai';
-import { createPageModePreviewSpecs } from '@affine/core/components/blocksuite/block-suite-editor/specs/preview';
+import { ChatPanel } from '@affine/core/blocksuite/ai';
+import type { AffineEditorContainer } from '@affine/core/blocksuite/block-suite-editor';
 import { AINetworkSearchService } from '@affine/core/modules/ai-button/services/network-search';
 import { DocDisplayMetaService } from '@affine/core/modules/doc-display-meta';
 import { DocSearchMenuService } from '@affine/core/modules/doc-search-menu/services';
@@ -8,8 +8,8 @@ import {
   createSignalFromObservable,
   DocModeProvider,
   RefNodeSlotsProvider,
+  SpecProvider,
 } from '@blocksuite/affine/blocks';
-import type { AffineEditorContainer } from '@blocksuite/affine/presets';
 import { useFramework } from '@toeverything/infra';
 import { forwardRef, useEffect, useRef } from 'react';
 
@@ -84,8 +84,8 @@ export const EditorChatPanel = forwardRef(function EditorChatPanel(
           );
         },
       };
-      chatPanelRef.current.previewSpecBuilder =
-        createPageModePreviewSpecs(framework);
+      const previewSpecBuilder = SpecProvider._.getSpec('preview:page');
+      chatPanelRef.current.previewSpecBuilder = previewSpecBuilder;
     } else {
       chatPanelRef.current.host = editor.host;
       chatPanelRef.current.doc = editor.doc;

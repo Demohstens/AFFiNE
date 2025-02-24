@@ -14,7 +14,8 @@ import type { WorkspaceDoc as PrismaWorkspaceDoc } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 
 import {
-  DocAccessDenied,
+  Cache,
+  DocActionDenied,
   DocDefaultRoleCanNotBeOwner,
   DocIsNotPublic,
   ExpectToGrantDocUserRoles,
@@ -155,7 +156,9 @@ export class WorkspaceDocResolver {
 
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly permission: PermissionService
+    private readonly permission: PermissionService,
+    private readonly models: Models,
+    private readonly cache: Cache
   ) {}
 
   @ResolveField(() => [DocType], {
@@ -209,17 +212,19 @@ export class WorkspaceDocResolver {
       },
     });
 
-    if (!doc) {
-      return {
-        docId,
-        workspaceId: workspace.id,
-        mode: PublicDocMode.Page,
-        public: false,
-        defaultRole: DocRole.Manager,
-      };
+    if (doc) {
+      return doc;
     }
 
-    return doc;
+    await this.tryFixDocOwner(workspace.id, docId);
+
+    return {
+      docId,
+      workspaceId: workspace.id,
+      mode: PublicDocMode.Page,
+      public: false,
+      defaultRole: DocRole.Manager,
+    };
   }
 
   @Mutation(() => DocType, {
@@ -331,6 +336,74 @@ export class WorkspaceDocResolver {
 
     return this.permission.revokePublicPage(docId.workspace, docId.guid);
   }
+
+  private async tryFixDocOwner(workspaceId: string, docId: string) {
+    const allowed = await this.cache.setnx(
+      `fixingOwner:${workspaceId}:${docId}`,
+      1,
+      // TODO(@forehalo): we definitely need a timer helper
+      { ttl: 1000 * 60 * 60 * 24 }
+    );
+
+    // fixed by other instance
+    if (!allowed) {
+      return;
+    }
+
+    const exists = await this.models.doc.exists(workspaceId, docId);
+
+    // skip if doc not even exists
+    if (!exists) {
+      return;
+    }
+
+    const owner = await this.prisma.workspaceDocUserPermission.findFirst({
+      where: {
+        workspaceId,
+        docId,
+        type: DocRole.Owner,
+      },
+    });
+
+    // skip if owner already exists
+    if (owner) {
+      return;
+    }
+
+    // try snapshot.createdBy first
+    const snapshot = await this.prisma.snapshot.findUnique({
+      select: {
+        createdBy: true,
+      },
+      where: {
+        workspaceId_id: {
+          workspaceId,
+          id: docId,
+        },
+      },
+    });
+
+    let fixedOwner = snapshot?.createdBy;
+
+    // try workspace.owner
+    if (!fixedOwner) {
+      const owner = await this.permission.getWorkspaceOwner(workspaceId);
+      fixedOwner = owner.id;
+    }
+
+    await this.prisma.workspaceDocUserPermission.createMany({
+      data: {
+        workspaceId,
+        docId,
+        userId: fixedOwner,
+        type: DocRole.Owner,
+      },
+    });
+
+    this.logger.debug(
+      `Fixed doc owner for ${docId} in workspace ${workspaceId}, new owner: ${fixedOwner}`
+    );
+  }
 }
 
 @Resolver(() => DocType)
@@ -384,7 +457,7 @@ export class DocResolver {
   async grantedUsersList(
     @CurrentUser() user: CurrentUser,
     @Parent() doc: DocType,
-    @Args('pagination') pagination: PaginationInput
+    @Args('pagination', PaginationInput.decode) pagination: PaginationInput
   ): Promise<PaginatedGrantedDocUserType> {
     await this.permission.checkPagePermission(
       doc.workspaceId,
@@ -607,7 +680,7 @@ export class DocResolver {
         user.id
       );
     } catch (error) {
-      if (error instanceof DocAccessDenied) {
+      if (error instanceof DocActionDenied) {
         this.logger.log(
           `User does not have permission to update page default role (${JSON.stringify(
             {

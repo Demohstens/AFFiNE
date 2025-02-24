@@ -104,7 +104,7 @@ export class UserFriendlyError extends Error {
 
   static fromUserFriendlyErrorJSON(body: UserFriendlyError) {
     return new UserFriendlyError(
-      body.type as UserFriendlyErrorBaseType,
+      body.type.toLowerCase() as UserFriendlyErrorBaseType,
       body.name.toLowerCase() as keyof typeof USER_FRIENDLY_ERRORS,
       body.message,
       body.data
@@ -419,11 +419,11 @@ export const USER_FRIENDLY_ERRORS = {
     message: ({ spaceId, docId }) =>
       `Doc ${docId} under Space ${spaceId} not found.`,
   },
-  doc_access_denied: {
+  doc_action_denied: {
     type: 'no_permission',
-    args: { spaceId: 'string', docId: 'string' },
-    message: ({ spaceId, docId }) =>
-      `You do not have permission to access doc ${docId} under Space ${spaceId}.`,
+    args: { spaceId: 'string', docId: 'string', action: 'string' },
+    message: ({ docId, action }) =>
+      `You do not have permission to perform ${action} action on doc ${docId}.`,
   },
   version_rejected: {
     type: 'action_forbidden',
@@ -723,5 +723,16 @@ export const USER_FRIENDLY_ERRORS = {
     args: { limit: 'number' },
     message: ({ limit }) =>
       `You cannot downgrade the workspace from team workspace because there are more than ${limit} members that are currently active.`,
+  },
+
+  // version errors
+  unsupported_client_version: {
+    type: 'action_forbidden',
+    args: {
+      clientVersion: 'string',
+      requiredVersion: 'string',
+    },
+    message: ({ clientVersion, requiredVersion }) =>
+      `Unsupported client with version [${clientVersion}], required version is [${requiredVersion}].`,
   },
 } satisfies Record<string, UserFriendlyErrorOptions>;

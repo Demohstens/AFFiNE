@@ -1,9 +1,10 @@
 import { Scrollable } from '@affine/component';
 import { PageDetailSkeleton } from '@affine/component/page-detail-skeleton';
-import type { ChatPanel } from '@affine/core/blocksuite/presets/ai';
-import { AIProvider } from '@affine/core/blocksuite/presets/ai';
+import type { ChatPanel } from '@affine/core/blocksuite/ai';
+import { AIProvider } from '@affine/core/blocksuite/ai';
+import type { AffineEditorContainer } from '@affine/core/blocksuite/block-suite-editor';
+import { EditorOutlineViewer } from '@affine/core/blocksuite/outline-viewer';
 import { PageAIOnboarding } from '@affine/core/components/affine/ai-onboarding';
-import { EditorOutlineViewer } from '@affine/core/components/blocksuite/outline-viewer';
 import { DocPropertySidebar } from '@affine/core/components/doc-properties/sidebar';
 import { useAppSettingHelper } from '@affine/core/components/hooks/affine/use-app-setting-helper';
 import { DocService } from '@affine/core/modules/doc';
@@ -22,7 +23,6 @@ import {
   type Disposable,
   DisposableGroup,
 } from '@blocksuite/affine/global/utils';
-import { type AffineEditorContainer } from '@blocksuite/affine/presets';
 import {
   AiIcon,
   FrameIcon,
@@ -167,10 +167,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
 
   const onLoad = useCallback(
     (editorContainer: AffineEditorContainer) => {
-      // blocksuite editor host
-      const editorHost = editorContainer.host;
-
-      const std = editorHost?.std;
+      const std = editorContainer.std;
       const disposable = new DisposableGroup();
       if (std) {
         const refNodeSlots = std.getOptional(RefNodeSlotsProvider);
@@ -179,7 +176,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
             // the event should not be emitted by AffineReference
             refNodeSlots.docLinkClicked.on(
               ({ pageId, params, openMode, event, host }) => {
-                if (host !== editorHost) {
+                if (host !== editorContainer.host) {
                   return;
                 }
                 openMode ??=
@@ -310,7 +307,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
               />
             </Scrollable.Root>
             <EditorOutlineViewer
-              editor={editorContainer}
+              editor={editorContainer?.host ?? null}
               show={mode === 'page' && !isSideBarOpen}
               openOutlinePanel={openOutlinePanel}
             />
@@ -350,7 +347,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
       <ViewSidebarTab tabId="outline" icon={<TocIcon />}>
         <Scrollable.Root className={styles.sidebarScrollArea}>
           <Scrollable.Viewport>
-            <EditorOutlinePanel editor={editorContainer} />
+            <EditorOutlinePanel editor={editorContainer?.host ?? null} />
           </Scrollable.Viewport>
           <Scrollable.Scrollbar />
         </Scrollable.Root>
@@ -359,7 +356,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
       <ViewSidebarTab tabId="frame" icon={<FrameIcon />}>
         <Scrollable.Root className={styles.sidebarScrollArea}>
           <Scrollable.Viewport>
-            <EditorFramePanel editor={editorContainer} />
+            <EditorFramePanel editor={editorContainer?.host ?? null} />
           </Scrollable.Viewport>
           <Scrollable.Scrollbar />
         </Scrollable.Root>

@@ -1,5 +1,6 @@
 import { useThemeColorV2 } from '@affine/component';
 import { PageDetailSkeleton } from '@affine/component/page-detail-skeleton';
+import type { AffineEditorContainer } from '@affine/core/blocksuite/block-suite-editor';
 import { AffineErrorBoundary } from '@affine/core/components/affine/affine-error-boundary';
 import { useActiveBlocksuiteEditor } from '@affine/core/components/hooks/use-block-suite-editor';
 import { usePageDocumentTitle } from '@affine/core/components/hooks/use-global-state';
@@ -28,7 +29,6 @@ import {
   RefNodeSlotsProvider,
 } from '@blocksuite/affine/blocks';
 import { DisposableGroup } from '@blocksuite/affine/global/utils';
-import { type AffineEditorContainer } from '@blocksuite/affine/presets';
 import {
   FrameworkScope,
   useLiveData,
@@ -87,7 +87,7 @@ const DetailPageImpl = () => {
   const enableEdgelessEditing =
     featureFlagService.flags.enable_mobile_edgeless_editing.value;
   const enableAIButton = useLiveData(
-    featureFlagService.flags.enable_ios_ai_button.$
+    featureFlagService.flags.enable_mobile_ai_button.$
   );
 
   // TODO(@eyhn): remove jotai here
@@ -139,9 +139,6 @@ const DetailPageImpl = () => {
 
   const onLoad = useCallback(
     (editorContainer: AffineEditorContainer) => {
-      // blocksuite editor host
-      const editorHost = editorContainer.host;
-
       // provide image proxy endpoint to blocksuite
       const imageProxyUrl = new URL(
         BUILD_CONFIG.imageProxyUrl,
@@ -153,14 +150,19 @@ const DetailPageImpl = () => {
         server.baseUrl
       ).toString();
 
-      editorHost?.std.clipboard.use(customImageProxyMiddleware(imageProxyUrl));
-      editorHost?.doc.get(ImageProxyService).setImageProxyURL(imageProxyUrl);
+      editorContainer.std.clipboard.use(
+        customImageProxyMiddleware(imageProxyUrl)
+      );
+      editorContainer.doc
+        .get(ImageProxyService)
+        .setImageProxyURL(imageProxyUrl);
 
       // provide link preview endpoint to blocksuite
-      editorHost?.doc.get(LinkPreviewerService).setEndpoint(linkPreviewUrl);
+      editorContainer.doc.get(LinkPreviewerService).setEndpoint(linkPreviewUrl);
 
       // provide page mode and updated date to blocksuite
-      const refNodeService = editorHost?.std.getOptional(RefNodeSlotsProvider);
+      const refNodeService =
+        editorContainer.std.getOptional(RefNodeSlotsProvider);
       const disposable = new DisposableGroup();
       if (refNodeService) {
         disposable.add(

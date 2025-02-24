@@ -1,15 +1,13 @@
+import type { AffineEditorContainer } from '@affine/core/blocksuite/block-suite-editor';
 import type { DefaultOpenProperty } from '@affine/core/components/doc-properties';
 import { GfxControllerIdentifier } from '@blocksuite/affine/block-std/gfx';
 import {
   type DocMode,
+  type DocTitle,
   FeatureFlagService as BSFeatureFlagService,
   HighlightSelection,
   type ReferenceParams,
 } from '@blocksuite/affine/blocks';
-import type {
-  AffineEditorContainer,
-  DocTitle,
-} from '@blocksuite/affine/presets';
 import type { InlineEditor } from '@blocksuite/inline';
 import { effect } from '@preact/signals-core';
 import { Entity, LiveData } from '@toeverything/infra';

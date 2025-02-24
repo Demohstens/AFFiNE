@@ -30,7 +30,7 @@ import { getSnapshotRect } from '../utils.js';
 export class PreviewHelper {
   private readonly _calculateQuery = (
     selectedIds: string[],
-    mode: 'page' | 'edgeless'
+    mode: 'block' | 'gfx'
   ): Query => {
     const ids: Array<{ id: string; viewType: BlockViewType }> = selectedIds.map(
       id => ({
@@ -59,7 +59,7 @@ export class PreviewHelper {
 
       const children = model.children ?? [];
       if (
-        mode === 'edgeless' &&
+        mode === 'gfx' &&
         matchModels(model, [RootBlockModel, SurfaceBlockModel])
       ) {
         children.forEach(child => {
@@ -86,12 +86,12 @@ export class PreviewHelper {
   getPreviewStd = (
     blockIds: string[],
     snapshot: SliceSnapshot,
-    mode: 'edgeless' | 'page'
+    mode: 'block' | 'gfx'
   ) => {
     const widget = this.widget;
     const std = widget.std;
     const sourceGfx = std.get(GfxControllerIdentifier);
-    const isEdgeless = mode === 'edgeless';
+    const isEdgeless = mode === 'gfx';
     blockIds = blockIds.slice();
 
     if (isEdgeless) {
@@ -102,13 +102,21 @@ export class PreviewHelper {
     const editorSetting = std.get(EditorSettingProvider).peek();
     const query = this._calculateQuery(blockIds as string[], mode);
     const store = widget.doc.doc.getStore({ query });
-    const previewSpec = SpecProvider.getInstance().getSpec(
-      isEdgeless ? 'edgeless:preview' : 'page:preview'
+    const previewSpec = SpecProvider._.getSpec(
+      isEdgeless ? 'preview:edgeless' : 'preview:page'
     );
     const settingSignal = signal({ ...editorSetting });
     const extensions = [
       DocModeExtension(docModeService),
       EditorSettingExtension(settingSignal),
+      {
+        setup(di) {
+          di.override(
+            BlockViewIdentifier('affine:database'),
+            () => literal`affine-dnd-preview-database`
+          );
+        },
+      } as ExtensionType,
       {
         setup(di) {
           di.override(BlockViewIdentifier('affine:image'), () => {
@@ -195,7 +203,7 @@ export class PreviewHelper {
     blockIds: string[];
     snapshot: SliceSnapshot;
     container: HTMLElement;
-    mode: 'page' | 'edgeless';
+    mode: 'block' | 'gfx';
   }): void => {
     const { blockIds, snapshot, container, mode } = options;
     const { previewStd, width, height, scale } = this.getPreviewStd(

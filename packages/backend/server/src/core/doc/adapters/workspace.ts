@@ -8,6 +8,7 @@ import {
   EventBus,
   FailedToSaveUpdates,
   FailedToUpsertSnapshot,
+  JobQueue,
   metrics,
   Mutex,
 } from '../../../base';
@@ -50,7 +51,8 @@ export class PgWorkspaceDocStorageAdapter extends DocStorageAdapter {
     private readonly mutex: Mutex,
     private readonly cache: Cache,
     private readonly event: EventBus,
-    protected override readonly options: DocStorageOptions
+    protected override readonly options: DocStorageOptions,
+    private readonly queue: JobQueue
   ) {
     super(options);
   }
@@ -95,9 +97,20 @@ export class PgWorkspaceDocStorageAdapter extends DocStorageAdapter {
               };
             })
           );
+          await this.queue.add(
+            'doc.mergePendingDocUpdates',
+            {
+              workspaceId,
+              docId,
+            },
+            {
+              // keep it simple to let all update merged in one job
+              jobId: `doc:merge-pending-updates:${workspaceId}:${docId}`,
+              delay: 30 * 1000 /* 30s */,
+            }
+          );
           turn++;
           done += batch.length;
-          await this.updateCachedUpdatesCount(workspaceId, docId, batch.length);
         }
       });
 
@@ -146,14 +159,11 @@ export class PgWorkspaceDocStorageAdapter extends DocStorageAdapter {
     docId: string,
     updates: DocUpdate[]
   ) {
-    const count = await this.models.doc.deleteUpdates(
+    return await this.models.doc.deleteUpdates(
       workspaceId,
       docId,
       updates.map(u => u.timestamp)
     );
-
-    await this.updateCachedUpdatesCount(workspaceId, docId, -count);
-    return count;
   }
 
   async listDocHistories(
@@ -334,7 +344,7 @@ export class PgWorkspaceDocStorageAdapter extends DocStorageAdapter {
       });
 
       if (updatedSnapshot) {
-        this.event.broadcast('doc.snapshot.updated', {
+        this.event.emit('doc.snapshot.updated', {
           workspaceId: snapshot.spaceId,
           docId: snapshot.docId,
         });
@@ -394,24 +404,5 @@ export class PgWorkspaceDocStorageAdapter extends DocStorageAdapter {
     }
 
     return null;
-  }
-
-  private async updateCachedUpdatesCount(
-    workspaceId: string,
-    guid: string,
-    count: number
-  ) {
-    const result = await this.cache.mapIncrease(
-      UPDATES_QUEUE_CACHE_KEY,
-      `${workspaceId}::${guid}`,
-      count
-    );
-
-    if (result <= 0) {
-      await this.cache.mapDelete(
-        UPDATES_QUEUE_CACHE_KEY,
-        `${workspaceId}::${guid}`
-      );
-    }
   }
 }
