@@ -32,7 +32,7 @@ export class WorkspaceEvents {
     userId,
     workspaceId,
   }: Events['workspace.members.requestDeclined']) {
-    const user = await this.models.user.getPublicUser(userId);
+    const user = await this.models.user.getWorkspaceUser(userId);
     // send decline mail
     await this.workspaceService.sendReviewDeclinedEmail(
       user?.email,
@@ -44,24 +44,24 @@ export class WorkspaceEvents {
   async onRoleChanged({
     userId,
     workspaceId,
-    permission,
+    role,
   }: Events['workspace.members.roleChanged']) {
     // send role changed mail
     await this.workspaceService.sendRoleChangedEmail(userId, {
       id: workspaceId,
-      role: permission,
+      role,
     });
   }
 
-  @OnEvent('workspace.members.ownershipTransferred')
+  @OnEvent('workspace.owner.changed')
   async onOwnerTransferred({
     workspaceId,
     from,
     to,
-  }: Events['workspace.members.ownershipTransferred']) {
+  }: Events['workspace.owner.changed']) {
     // send ownership transferred mail
-    const fromUser = await this.models.user.getPublicUser(from);
-    const toUser = await this.models.user.getPublicUser(to);
+    const fromUser = await this.models.user.getWorkspaceUser(from);
+    const toUser = await this.models.user.getWorkspaceUser(to);
 
     if (fromUser) {
       await this.workspaceService.sendOwnershipTransferredEmail(

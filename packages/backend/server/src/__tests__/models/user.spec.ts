@@ -2,13 +2,13 @@ import ava, { TestFn } from 'ava';
 import Sinon from 'sinon';
 
 import { EmailAlreadyUsed, EventBus } from '../../base';
-import { WorkspaceRole } from '../../core/permission';
+import { Models } from '../../models';
 import { UserModel } from '../../models/user';
-import { WorkspaceMemberStatus } from '../../models/workspace';
 import { createTestingModule, sleep, type TestingModule } from '../utils';
 
 interface Context {
   module: TestingModule;
+  models: Models;
   user: UserModel;
 }
 
@@ -18,6 +18,7 @@ test.before(async t => {
   const module = await createTestingModule({});
 
   t.context.user = module.get(UserModel);
+  t.context.models = module.get(Models);
   t.context.module = module;
 });
 
@@ -151,6 +152,7 @@ test('should get public user by id', async t => {
   t.not(publicUser, null);
   t.is(publicUser!.id, user.id);
   t.true(!('password' in publicUser!));
+  t.true(!('email' in publicUser!));
 });
 
 test('should get public user by email', async t => {
@@ -163,6 +165,35 @@ test('should get public user by email', async t => {
   t.not(publicUser, null);
   t.is(publicUser!.id, user.id);
   t.true(!('password' in publicUser!));
+  t.true(!('email' in publicUser!));
+});
+
+test('should get workspace user by id', async t => {
+  const user = await t.context.user.create({
+    email: 'test@affine.pro',
+  });
+
+  const workspaceUser = await t.context.user.getWorkspaceUser(user.id);
+
+  t.not(workspaceUser, null);
+  t.is(workspaceUser!.id, user.id);
+  t.true(!('password' in workspaceUser!));
+  t.is(workspaceUser!.email, user.email);
+});
+
+test('should get workspace user by email', async t => {
+  const user = await t.context.user.create({
+    email: 'test@affine.pro',
+  });
+
+  const workspaceUser = await t.context.user.getWorkspaceUserByEmail(
+    user.email
+  );
+
+  t.not(workspaceUser, null);
+  t.is(workspaceUser!.id, user.id);
+  t.true(!('password' in workspaceUser!));
+  t.is(workspaceUser!.email, user.email);
 });
 
 test('should get user by email', async t => {
@@ -253,24 +284,13 @@ test('should trigger user.deleted event', async t => {
 
   const user = await t.context.user.create({
     email: 'test@affine.pro',
-    workspacePermissions: {
-      create: {
-        workspace: {
-          create: {
-            id: 'test-workspace',
-            public: false,
-          },
-        },
-        type: WorkspaceRole.Owner,
-        status: WorkspaceMemberStatus.Accepted,
-      },
-    },
   });
+  const workspace = await t.context.models.workspace.create(user.id);
 
   await t.context.user.delete(user.id);
 
   t.true(
-    spy.calledOnceWithExactly({ ...user, ownedWorkspaces: ['test-workspace'] })
+    spy.calledOnceWithExactly({ ...user, ownedWorkspaces: [workspace.id] })
   );
   // await for 'user.deleted' event to be emitted and executed
   // avoid race condition cause database dead lock
@@ -295,6 +315,14 @@ test('should paginate users', async t => {
     users.map(user => user.email),
     Array.from({ length: 10 }).map((_, i) => `test-paginate-${i}@affine.pro`)
   );
+});
+
+test('should check if user exists', async t => {
+  const user = await t.context.user.create({
+    email: 'test@affine.pro',
+  });
+  t.true(await t.context.user.exists(user.id));
+  t.false(await t.context.user.exists('non-existing-user'));
 });
 
 // #region ConnectedAccount

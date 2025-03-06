@@ -1,5 +1,9 @@
 import type { Color, ColorScheme, Palette } from '@blocksuite/affine-model';
-import { isTransparent, resolveColor } from '@blocksuite/affine-model';
+import {
+  DefaultTheme,
+  isTransparent,
+  resolveColor,
+} from '@blocksuite/affine-model';
 import { unsafeCSSVarV2 } from '@blocksuite/affine-shared/theme';
 import { ColorEvent } from '@blocksuite/affine-shared/utils';
 import { css, html, LitElement, nothing, svg, type TemplateResult } from 'lit';
@@ -7,7 +11,7 @@ import { property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { repeat } from 'lit/directives/repeat.js';
-import { isEqual } from 'lodash-es';
+import isEqual from 'lodash-es/isEqual';
 
 function TransparentIcon(hollowCircle = false) {
   const CircleIcon: TemplateResult | typeof nothing = hollowCircle
@@ -253,7 +257,7 @@ export class EdgelessColorPanel extends LitElement {
   accessor openColorPicker!: (e: MouseEvent) => void;
 
   @property({ type: Array })
-  accessor palettes: readonly Palette[] = [];
+  accessor palettes: readonly Palette[] = DefaultTheme.Palettes;
 
   @property({ attribute: false })
   accessor theme!: ColorScheme;

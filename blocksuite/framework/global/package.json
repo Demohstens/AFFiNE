@@ -15,7 +15,10 @@
     "./env": "./src/env/index.ts",
     "./exceptions": "./src/exceptions/index.ts",
     "./di": "./src/di/index.ts",
-    "./types": "./src/types/index.ts"
+    "./types": "./src/types/index.ts",
+    "./gfx": "./src/gfx/index.ts",
+    "./slot": "./src/slot/index.ts",
+    "./lit": "./src/lit/index.ts"
   },
   "typesVersions": {
     "*": {
@@ -30,6 +33,18 @@
       ],
       "di": [
         "dist/di/index.d.ts"
+      ],
+      "types": [
+        "dist/types/index.d.ts"
+      ],
+      "gfx": [
+        "dist/gfx/index.d.ts"
+      ],
+      "slot": [
+        "dist/slot/index.d.ts"
+      ],
+      "lit": [
+        "dist/lit/index.d.ts"
       ]
     }
   },
@@ -49,7 +64,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "vitest": "3.0.6"
+    "vitest": "3.0.7"
   },
   "version": "0.20.0"
 }

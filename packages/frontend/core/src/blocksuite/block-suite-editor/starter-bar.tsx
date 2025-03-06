@@ -1,3 +1,4 @@
+import { MenuSeparator } from '@affine/component';
 import {
   handleInlineAskAIAction,
   pageAIGroups,
@@ -6,7 +7,10 @@ import { DocsService } from '@affine/core/modules/doc';
 import { EditorService } from '@affine/core/modules/editor';
 import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import { TemplateDocService } from '@affine/core/modules/template-doc';
-import { TemplateListMenu } from '@affine/core/modules/template-doc/view/template-list-menu';
+import {
+  TemplateListMenu,
+  TemplateListMenuAdd,
+} from '@affine/core/modules/template-doc/view/template-list-menu';
 import { useI18n } from '@affine/i18n';
 import track from '@affine/track';
 import { PageRootBlockComponent } from '@blocksuite/affine/blocks';
@@ -115,7 +119,7 @@ const StarterBarNotEmpty = ({ doc }: { doc: Store }) => {
   }
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-testid="starter-bar">
       {t['com.affine.page-starter-bar.start']()}
       <ul className={styles.badges}>
         {enableAI ? (
@@ -134,6 +138,12 @@ const StarterBarNotEmpty = ({ doc }: { doc: Store }) => {
               open: templateMenuOpen,
               onOpenChange: onTemplateMenuOpenChange,
             }}
+            suffixItems={
+              <>
+                <MenuSeparator />
+                <TemplateListMenuAdd />
+              </>
+            }
           >
             <Badge
               data-testid="template-docs-badge"
@@ -166,12 +176,9 @@ export const StarterBar = ({ doc }: { doc: Store }) => {
   );
 
   useEffect(() => {
-    const disposable = doc.slots.blockUpdated.on(() => {
-      setIsEmpty(doc.isEmpty);
+    return doc.isEmpty$.subscribe(value => {
+      setIsEmpty(value);
     });
-    return () => {
-      disposable.dispose();
-    };
   }, [doc]);
 
   if (!isEmpty || isTemplate) return null;

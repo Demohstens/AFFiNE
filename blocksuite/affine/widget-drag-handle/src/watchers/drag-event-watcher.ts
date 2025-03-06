@@ -48,15 +48,13 @@ import {
   SurfaceBlockModel,
 } from '@blocksuite/block-std/gfx';
 import {
-  assertType,
   Bound,
-  groupBy,
   type IVec,
-  last,
   Point,
   Rect,
   type SerializedXYWH,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { assertType } from '@blocksuite/global/utils';
 import {
   type BlockModel,
   type BlockSnapshot,
@@ -65,6 +63,8 @@ import {
   type SliceSnapshot,
   toDraftModel,
 } from '@blocksuite/store';
+import groupBy from 'lodash-es/groupBy';
+import last from 'lodash-es/last';
 
 import type { AffineDragHandleWidget } from '../drag-handle.js';
 import { PreviewHelper } from '../helpers/preview-helper.js';
@@ -1139,7 +1139,7 @@ export class DragEventWatcher {
                   block.flavour === 'affine:bookmark' ||
                   block.flavour.startsWith('affine:embed-'))
               ) {
-                store.updateBlock(block as BlockModel, {
+                store.updateBlock(block.id, {
                   xywh: content[idx].props.xywh,
                   style: content[idx].props.style,
                 });
@@ -1164,7 +1164,7 @@ export class DragEventWatcher {
                 block.flavour === 'affine:attachment' ||
                 block.flavour.startsWith('affine:embed-')
               ) {
-                store.updateBlock(block as BlockModel, {
+                store.updateBlock(block.id, {
                   xywh: content[idx].props.xywh,
                   style: content[idx].props.style,
                 });
@@ -1354,7 +1354,7 @@ export class DragEventWatcher {
       middlewares.push(gfxBlocksFilter(selectedIds, std));
     }
 
-    return std.getTransformer(middlewares);
+    return std.store.getTransformer(middlewares);
   }
 
   private _isDropOnCurrentEditor(std?: BlockStdScope) {
@@ -1625,10 +1625,13 @@ export class DragEventWatcher {
 
     disposables.add(
       std.view.viewUpdated.on(payload => {
-        if (payload.type === 'add') {
+        if (payload.type !== 'block') {
+          return;
+        }
+        if (payload.method === 'add') {
           this._makeDropTarget(payload.view);
         } else if (
-          payload.type === 'delete' &&
+          payload.method === 'delete' &&
           this.dropTargetCleanUps.has(payload.id)
         ) {
           this.dropTargetCleanUps.get(payload.id)!.forEach(clean => clean());

@@ -5,7 +5,6 @@ import {
   type getCopilotHistoriesQuery,
   type RequestOptions,
 } from '@affine/graphql';
-import { assertExists } from '@blocksuite/affine/global/utils';
 import { z } from 'zod';
 
 import { AIProvider } from './ai-provider';
@@ -234,7 +233,9 @@ export function setupAIProvider(
   });
 
   AIProvider.provide('expandMindmap', options => {
-    assertExists(options.input, 'expandMindmap action requires input');
+    if (!options.input) {
+      throw new Error('expandMindmap action requires input');
+    }
     return textToText({
       ...options,
       client,
@@ -408,12 +409,12 @@ Could you make a new website based on these notes and send back just the html fi
         promptName,
       });
     },
-    getSessionIds: async (
+    getSessions: async (
       workspaceId: string,
       docId?: string,
       options?: { action?: boolean }
     ) => {
-      return client.getSessionIds(workspaceId, docId, options);
+      return client.getSessions(workspaceId, docId, options);
     },
     updateSession: async (sessionId: string, promptName: string) => {
       return client.updateSession({

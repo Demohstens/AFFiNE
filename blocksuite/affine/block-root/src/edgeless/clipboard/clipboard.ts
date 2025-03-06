@@ -49,22 +49,21 @@ import {
   SortOrder,
 } from '@blocksuite/block-std/gfx';
 import { BlockSuiteError, ErrorCode } from '@blocksuite/global/exceptions';
-import type { IBound, IVec, SerializedXYWH } from '@blocksuite/global/utils';
 import {
-  assertExists,
-  assertType,
   Bound,
-  DisposableGroup,
   getCommonBound,
-  nToLast,
+  type IBound,
+  type IVec,
+  type SerializedXYWH,
   Vec,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { DisposableGroup } from '@blocksuite/global/slot';
+import { assertType } from '@blocksuite/global/utils';
 import {
   type BlockSnapshot,
   BlockSnapshotSchema,
   fromJSON,
   type SliceSnapshot,
-  Transformer,
 } from '@blocksuite/store';
 import DOMPurify from 'dompurify';
 import * as Y from 'yjs';
@@ -373,15 +372,7 @@ export class EdgelessClipboardController extends PageClipboard {
       if (mayBeSurfaceDataJson !== undefined) {
         const elementsRawData = JSON.parse(mayBeSurfaceDataJson);
         const { snapshot, blobs } = elementsRawData;
-        const job = new Transformer({
-          schema: this.std.workspace.schema,
-          blobCRUD: this.std.workspace.blobSync,
-          docCRUD: {
-            create: (id: string) => this.std.workspace.createDoc({ id }),
-            get: (id: string) => this.std.workspace.getDoc(id),
-            delete: (id: string) => this.std.workspace.removeDoc(id),
-          },
-        });
+        const job = this.std.store.getTransformer();
         const map = job.assetsManager.getAssets();
         decodeClipboardBlobs(blobs, map);
         for (const blobId of map.keys()) {
@@ -524,17 +515,19 @@ export class EdgelessClipboardController extends PageClipboard {
     clipboardData: SerializedElement,
     context: CreationContext,
     newXYWH: SerializedXYWH
-  ) {
+  ): GfxPrimitiveElementModel | null {
     if (clipboardData.type === GROUP) {
       const yMap = new Y.Map();
       const children = clipboardData.children ?? {};
 
       for (const [key, value] of Object.entries(children)) {
         const newKey = context.oldToNewIdMap.get(key);
-        assertExists(
-          newKey,
-          'Copy failed: cannot find the copied child in group'
-        );
+        if (!newKey) {
+          console.error(
+            `Copy failed: cannot find the copied child in group, key: ${key}`
+          );
+          return null;
+        }
         yMap.set(newKey, value);
       }
       clipboardData.children = yMap;
@@ -548,17 +541,21 @@ export class EdgelessClipboardController extends PageClipboard {
         const newValue = {
           ...oldValue,
         };
-        assertExists(
-          newKey,
-          'Copy failed: cannot find the copied node in mind map'
-        );
+        if (!newKey) {
+          console.error(
+            `Copy failed: cannot find the copied node in mind map, key: ${oldKey}`
+          );
+          return null;
+        }
 
         if (oldValue.parent) {
           const newParent = context.oldToNewIdMap.get(oldValue.parent);
-          assertExists(
-            newParent,
-            'Copy failed: cannot find the copied node in mind map'
-          );
+          if (!newParent) {
+            console.error(
+              `Copy failed: cannot find the copied node in mind map, parent: ${oldValue.parent}`
+            );
+            return null;
+          }
           newValue.parent = newParent;
         }
 
@@ -608,7 +605,10 @@ export class EdgelessClipboardController extends PageClipboard {
       type: clipboardData.type as string,
     });
     const element = this.crud.getElementById(id) as GfxPrimitiveElementModel;
-    assertExists(element);
+    if (!element) {
+      console.error(`Copy failed: cannot find the copied element, id: ${id}`);
+      return null;
+    }
     return element;
   }
 
@@ -903,7 +903,7 @@ export class EdgelessClipboardController extends PageClipboard {
     const editorMode = isInsidePageEditor(host);
 
     const rootComponent = getRootByEditorHost(host);
-    assertExists(rootComponent);
+    if (!rootComponent) return;
 
     const container = rootComponent.querySelector(
       '.affine-block-children-container'
@@ -1169,13 +1169,13 @@ export class EdgelessClipboardController extends PageClipboard {
         const bGroups = b.groups as SurfaceGroupLikeModel[];
 
         let i = 1;
-        let aGroup: GfxModel | undefined = nToLast(aGroups, i);
-        let bGroup: GfxModel | undefined = nToLast(bGroups, i);
+        let aGroup: GfxModel | undefined = aGroups.at(-i);
+        let bGroup: GfxModel | undefined = bGroups.at(-i);
 
         while (aGroup === bGroup && aGroup) {
           ++i;
-          aGroup = nToLast(aGroups, i);
-          bGroup = nToLast(bGroups, i);
+          aGroup = aGroups.at(-i);
+          bGroup = bGroups.at(-i);
         }
 
         aGroup = aGroup ?? a;
@@ -1360,7 +1360,10 @@ export class EdgelessClipboardController extends PageClipboard {
       bounds.push(shape.elementBound);
     });
     const bound = getCommonBound(bounds);
-    assertExists(bound, 'bound not exist');
+    if (!bound) {
+      console.error('bound not exist');
+      return;
+    }
 
     const canvas = await this._edgelessToCanvas(
       this.host,
@@ -1377,15 +1380,7 @@ export async function prepareClipboardData(
   selectedAll: GfxModel[],
   std: BlockStdScope
 ) {
-  const job = new Transformer({
-    schema: std.workspace.schema,
-    blobCRUD: std.workspace.blobSync,
-    docCRUD: {
-      create: (id: string) => std.workspace.createDoc({ id }),
-      get: (id: string) => std.workspace.getDoc(id),
-      delete: (id: string) => std.workspace.removeDoc(id),
-    },
-  });
+  const job = std.store.getTransformer();
   const selected = await Promise.all(
     selectedAll.map(async selected => {
       const data = serializeElement(selected, selectedAll, job);

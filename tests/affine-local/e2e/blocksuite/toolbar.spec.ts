@@ -7,13 +7,34 @@ import {
 } from '@affine-test/kit/utils/page-logic';
 import { expect } from '@playwright/test';
 
+function hexToRGB(hex: string) {
+  hex = hex.replace(/^#/, '');
+  const len = hex.length;
+  let arr: string[] = [];
+
+  if (len === 3 || len === 4) {
+    arr = hex.split('').map(s => s.repeat(2));
+  } else if (len === 6 || len === 8) {
+    arr = Array.from<number>({ length: len / 2 })
+      .fill(0)
+      .map((n, i) => n + i * 2)
+      .map(n => hex.substring(n, n + 2));
+  }
+
+  const values = arr
+    .map(s => parseInt(s, 16))
+    .map((n, i) => (i === 3 ? (n % 255) / 255 : n));
+
+  return `rgb${values.length === 4 ? 'a' : ''}(${values.join(', ')})`;
+}
+
 test.beforeEach(async ({ page }) => {
   await openHomePage(page);
   await clickNewPageButton(page);
   await waitForEmptyEditor(page);
 });
 
-test.describe('Format bar', () => {
+test.describe('Formatting', () => {
   test('should change text color', async ({ page }) => {
     await page.keyboard.press('Enter');
 
@@ -23,23 +44,25 @@ test.describe('Format bar', () => {
     await page.keyboard.press('Shift+ArrowLeft');
 
     const formatBar = locateFormatBar(page);
-    await formatBar.locator('.highlight-icon').hover();
-    const fgGreenButton = formatBar.locator(
-      '[data-testid="var(--affine-text-highlight-foreground-green)"]'
-    );
+    const highlightButton = formatBar.locator('affine-highlight-duotone-icon');
+
+    await highlightButton.click();
+
+    const fgGreenButton = formatBar.locator('[data-testid="foreground-green"]');
     await fgGreenButton.click();
-    const fgColor1 = await fgGreenButton
-      .locator('span')
-      .evaluate(e => window.getComputedStyle(e).getPropertyValue('color'));
+    const fgColor = await fgGreenButton
+      .locator('affine-text-duotone-icon')
+      .evaluate(e => window.getComputedStyle(e).getPropertyValue('--color'));
 
     const paragraph = page.locator('affine-paragraph');
-    const textSpan = paragraph.getByText('rld');
-    await expect(textSpan).toBeVisible();
-    const fgColor2 = await textSpan.evaluate(e =>
-      window.getComputedStyle(e).getPropertyValue('color')
-    );
+    const textSpan = paragraph
+      .locator('affine-text:has-text("rld")')
+      .locator('span')
+      .first();
 
-    expect(fgColor1).toBe(fgColor2);
+    await expect(textSpan).toBeVisible();
+
+    await expect(textSpan).toHaveCSS('color', hexToRGB(fgColor));
   });
 
   test('should change text background color', async ({ page }) => {
@@ -51,42 +74,61 @@ test.describe('Format bar', () => {
     await page.keyboard.press('Shift+ArrowLeft');
 
     const formatBar = locateFormatBar(page);
-    await formatBar.locator('.highlight-icon').hover();
+    const highlightButton = formatBar.locator('affine-highlight-duotone-icon');
 
-    const fgGreenButton = formatBar.locator(
-      '[data-testid="var(--affine-text-highlight-foreground-green)"]'
-    );
+    await highlightButton.click();
+
+    const fgGreenButton = formatBar.locator('[data-testid="foreground-green"]');
     await fgGreenButton.click();
-    const fgColor1 = await fgGreenButton
-      .locator('span')
-      .evaluate(e => window.getComputedStyle(e).getPropertyValue('color'));
+
+    await page.waitForTimeout(200);
+
+    const fgColor = await fgGreenButton
+      .locator('affine-text-duotone-icon')
+      .evaluate(e => window.getComputedStyle(e).getPropertyValue('--color'));
 
     const paragraph = page.locator('affine-paragraph');
-    const text1Span = paragraph.getByText('rld');
-    const fgColor2 = await text1Span.evaluate(e =>
-      window.getComputedStyle(e).getPropertyValue('color')
-    );
+    const textSpan1 = paragraph
+      .locator('affine-text:has-text("rld")')
+      .locator('span')
+      .first();
 
-    expect(fgColor1).toBe(fgColor2);
+    await expect(textSpan1).toHaveCSS('color', hexToRGB(fgColor));
 
-    await page.keyboard.press('Shift+ArrowLeft');
-    await page.keyboard.press('Shift+ArrowLeft');
+    await page.keyboard.press('ArrowRight');
 
-    await formatBar.locator('.highlight-icon').hover();
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('Shift+ArrowLeft');
+    }
 
+    await highlightButton.click();
+
+    const yellow = 'var(--affine-text-highlight-yellow)';
     const bgYellowButton = formatBar.locator(
-      '[data-testid="var(--affine-text-highlight-yellow)"]'
+      '[data-testid="background-yellow"]'
     );
     await bgYellowButton.click();
-    const bgColor1 = await bgYellowButton
+
+    const textSpan2 = paragraph
+      .locator('affine-text:has-text("wo")')
       .locator('span')
-      .evaluate(e => window.getComputedStyle(e).getPropertyValue('background'));
+      .first();
 
-    const text2Span = paragraph.getByText('world');
-    const bgColor2 = await text2Span.evaluate(e =>
-      window.getComputedStyle(e).getPropertyValue('background')
-    );
+    await expect(textSpan2).toBeVisible();
 
-    expect(bgColor1).toBe(bgColor2);
+    const bgColor1 = await textSpan1.evaluate(e => e.style.backgroundColor);
+    const bgColor2 = await textSpan2.evaluate(e => e.style.backgroundColor);
+
+    expect(yellow).toBe(bgColor1);
+    expect(yellow).toBe(bgColor2);
+
+    const bgColor = await bgYellowButton
+      .locator('affine-text-duotone-icon')
+      .evaluate(e =>
+        window.getComputedStyle(e).getPropertyValue('--background')
+      );
+
+    await expect(textSpan1).toHaveCSS('background-color', hexToRGB(bgColor));
+    await expect(textSpan2).toHaveCSS('background-color', hexToRGB(bgColor));
   });
 });

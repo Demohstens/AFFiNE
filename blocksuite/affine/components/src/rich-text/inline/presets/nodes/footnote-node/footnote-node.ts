@@ -7,7 +7,7 @@ import {
   ShadowlessElement,
   TextSelection,
 } from '@blocksuite/block-std';
-import { WithDisposable } from '@blocksuite/global/utils';
+import { WithDisposable } from '@blocksuite/global/lit';
 import {
   type DeltaInsert,
   INLINE_ROOT_ATTR,
@@ -36,20 +36,22 @@ export class AffineFootnoteNode extends WithDisposable(ShadowlessElement) {
       cursor: pointer;
     }
 
-    .footnote-content-default {
-      display: inline-block;
-      background: ${unsafeCSSVarV2('block/footnote/numberBgHover')};
-      color: ${unsafeCSSVarV2('button/pureWhiteText')};
-      width: 14px;
-      height: 14px;
-      line-height: 14px;
-      font-size: 10px;
-      font-weight: 400;
-      border-radius: 50%;
-      text-align: center;
-      text-overflow: ellipsis;
-      font-family: ${unsafeCSS(baseTheme.fontSansFamily)};
-      transition: background 0.3s ease-in-out;
+    .footnote-node {
+      .footnote-content-default {
+        display: inline-block;
+        background: ${unsafeCSSVarV2('block/footnote/numberBgHover')};
+        color: ${unsafeCSSVarV2('button/pureWhiteText')};
+        width: 14px;
+        height: 14px;
+        line-height: 14px;
+        font-size: 10px;
+        font-weight: 400;
+        border-radius: 50%;
+        text-align: center;
+        text-overflow: ellipsis;
+        font-family: ${unsafeCSS(baseTheme.fontSansFamily)};
+        transition: background 0.3s ease-in-out;
+      }
     }
 
     .footnote-node.hover-effect {

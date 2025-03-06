@@ -13,7 +13,6 @@ import { renderToolbarSeparator } from '@blocksuite/affine-components/toolbar';
 import {
   type ColorScheme,
   DEFAULT_NOTE_HEIGHT,
-  DefaultTheme,
   type FrameBlockModel,
   NoteBlockModel,
   NoteDisplayMode,
@@ -23,18 +22,15 @@ import { FeatureFlagService } from '@blocksuite/affine-shared/services';
 import type { ColorEvent } from '@blocksuite/affine-shared/utils';
 import { matchModels } from '@blocksuite/affine-shared/utils';
 import { GfxExtensionIdentifier } from '@blocksuite/block-std/gfx';
-import {
-  countBy,
-  deserializeXYWH,
-  maxBy,
-  serializeXYWH,
-  WithDisposable,
-} from '@blocksuite/global/utils';
+import { deserializeXYWH, serializeXYWH } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
 import { EditIcon, PageIcon, UngroupIcon } from '@blocksuite/icons/lit';
 import { html, LitElement, nothing } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { join } from 'lit/directives/join.js';
 import { when } from 'lit/directives/when.js';
+import countBy from 'lodash-es/countBy';
+import maxBy from 'lodash-es/maxBy';
 
 import type { EdgelessRootBlockComponent } from '../../edgeless/edgeless-root-block.js';
 import { mountFrameTitleEditor } from '../../edgeless/utils/text.js';
@@ -201,13 +197,12 @@ export class EdgelessChangeFrameButton extends WithDisposable(LitElement) {
             return html`
               <edgeless-color-picker-button
                 class="background"
-                .label=${'Background'}
+                .label="${'Background'}"
                 .pick=${this.pickColor}
                 .color=${background}
                 .colors=${colors}
                 .colorType=${type}
                 .theme=${colorScheme}
-                .palettes=${DefaultTheme.Palettes}
               >
               </edgeless-color-picker-button>
             `;
@@ -229,7 +224,6 @@ export class EdgelessChangeFrameButton extends WithDisposable(LitElement) {
               <edgeless-color-panel
                 .value=${background}
                 .theme=${colorScheme}
-                .palettes=${DefaultTheme.Palettes}
                 @select=${this._setFrameBackground}
               >
               </edgeless-color-panel>

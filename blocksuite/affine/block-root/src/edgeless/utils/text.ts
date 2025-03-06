@@ -12,8 +12,8 @@ import type {
 import { ShapeElementModel, TextElementModel } from '@blocksuite/affine-model';
 import type { PointerEventState } from '@blocksuite/block-std';
 import { BlockSuiteError, ErrorCode } from '@blocksuite/global/exceptions';
-import type { IVec } from '@blocksuite/global/utils';
-import { assertInstanceOf, Bound } from '@blocksuite/global/utils';
+import type { IVec } from '@blocksuite/global/gfx';
+import { Bound } from '@blocksuite/global/gfx';
 import * as Y from 'yjs';
 
 import { EdgelessConnectorLabelEditor } from '../components/text/edgeless-connector-label-editor.js';
@@ -81,11 +81,10 @@ export function mountShapeTextEditor(
 
   const updatedElement = edgeless.service.crud.getElementById(shapeElement.id);
 
-  assertInstanceOf(
-    updatedElement,
-    ShapeElementModel,
-    'Cannot mount text editor on a non-shape element'
-  );
+  if (!(updatedElement instanceof ShapeElementModel)) {
+    console.error('Cannot mount text editor on a non-shape element');
+    return;
+  }
 
   const shapeEditor = new EdgelessShapeTextEditor();
   shapeEditor.element = updatedElement;

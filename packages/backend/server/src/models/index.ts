@@ -8,8 +8,10 @@ import { ModuleRef } from '@nestjs/core';
 
 import { ApplyType } from '../base';
 import { DocModel } from './doc';
+import { DocUserModel } from './doc-user';
 import { FeatureModel } from './feature';
-import { PageModel } from './page';
+import { HistoryModel } from './history';
+import { NotificationModel } from './notification';
 import { MODELS_SYMBOL } from './provider';
 import { SessionModel } from './session';
 import { UserModel } from './user';
@@ -18,6 +20,7 @@ import { UserFeatureModel } from './user-feature';
 import { VerificationTokenModel } from './verification-token';
 import { WorkspaceModel } from './workspace';
 import { WorkspaceFeatureModel } from './workspace-feature';
+import { WorkspaceUserModel } from './workspace-user';
 
 const MODELS = {
   user: UserModel,
@@ -25,11 +28,14 @@ const MODELS = {
   verificationToken: VerificationTokenModel,
   feature: FeatureModel,
   workspace: WorkspaceModel,
-  page: PageModel,
   userFeature: UserFeatureModel,
   workspaceFeature: WorkspaceFeatureModel,
   doc: DocModel,
   userDoc: UserDocModel,
+  workspaceUser: WorkspaceUserModel,
+  docUser: DocUserModel,
+  history: HistoryModel,
+  notification: NotificationModel,
 };
 
 type ModelsType = {
@@ -83,8 +89,10 @@ export class ModelsModule {}
 
 export * from './common';
 export * from './doc';
+export * from './doc-user';
 export * from './feature';
-export * from './page';
+export * from './history';
+export * from './notification';
 export * from './session';
 export * from './user';
 export * from './user-doc';
@@ -92,3 +100,4 @@ export * from './user-feature';
 export * from './verification-token';
 export * from './workspace';
 export * from './workspace-feature';
+export * from './workspace-user';

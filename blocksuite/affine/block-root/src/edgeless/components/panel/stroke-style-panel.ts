@@ -1,10 +1,6 @@
-import {
-  type ColorScheme,
-  DefaultTheme,
-  type StrokeStyle,
-} from '@blocksuite/affine-model';
+import { type ColorScheme, type StrokeStyle } from '@blocksuite/affine-model';
 import type { ColorEvent } from '@blocksuite/affine-shared/utils';
-import { WithDisposable } from '@blocksuite/global/utils';
+import { WithDisposable } from '@blocksuite/global/lit';
 import { css, html, LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
 
@@ -44,7 +40,6 @@ export class StrokeStylePanel extends WithDisposable(LitElement) {
         aria-label="Border colors"
         .value=${this.strokeColor}
         .theme=${this.theme}
-        .palettes=${DefaultTheme.Palettes}
         .hollowCircle=${this.hollowCircle}
         @select=${(e: ColorEvent) => this.setStrokeColor(e)}
       >

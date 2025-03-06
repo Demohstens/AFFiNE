@@ -9,7 +9,8 @@ import {
   RANGE_SYNC_EXCLUDE_ATTR,
   ShadowlessElement,
 } from '@blocksuite/block-std';
-import { assertExists, Bound, WithDisposable } from '@blocksuite/global/utils';
+import { Bound } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
 import { cssVarV2 } from '@toeverything/theme/v2';
 import { css, html, nothing } from 'lit';
 import { property, query } from 'lit/decorators.js';
@@ -62,7 +63,6 @@ export class EdgelessFrameTitleEditor extends WithDisposable(
 
   override firstUpdated(): void {
     const dispatcher = this.edgeless.dispatcher;
-    assertExists(dispatcher);
     this.updateComplete
       .then(() => {
         if (!this.inlineEditor) return;

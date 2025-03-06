@@ -25,13 +25,10 @@ import {
 import { handleNativeRangeAtPoint } from '@blocksuite/affine-shared/utils';
 import { type BlockStdScope, stdContext } from '@blocksuite/block-std';
 import { GfxControllerIdentifier } from '@blocksuite/block-std/gfx';
-import type { Bound, IVec } from '@blocksuite/global/utils';
-import {
-  assertExists,
-  DisposableGroup,
-  Vec,
-  WithDisposable,
-} from '@blocksuite/global/utils';
+import type { Bound, IVec } from '@blocksuite/global/gfx';
+import { Vec } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
+import { DisposableGroup } from '@blocksuite/global/slot';
 import {
   ArrowUpBigIcon,
   PlusIcon,
@@ -194,7 +191,9 @@ export class EdgelessAutoComplete extends WithDisposable(LitElement) {
         );
       }
       if (this._isMoving) {
-        assertExists(connector);
+        if (!connector) {
+          return;
+        }
         const otherSideId = connector.source.id;
 
         connector.target = this.connectionOverlay.renderConnector(
@@ -382,7 +381,9 @@ export class EdgelessAutoComplete extends WithDisposable(LitElement) {
       );
     } else {
       const model = doc.getBlockById(id);
-      assertExists(model);
+      if (!model) {
+        return;
+      }
       const [x, y] = service.viewport.toViewCoord(
         bound.center[0],
         bound.y + DEFAULT_NOTE_HEIGHT / 2

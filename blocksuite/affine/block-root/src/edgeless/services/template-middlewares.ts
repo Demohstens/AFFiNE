@@ -1,6 +1,7 @@
 import { generateElementId, sortIndex } from '@blocksuite/affine-block-surface';
 import type { ConnectorElementModel } from '@blocksuite/affine-model';
-import { assertExists, assertType, Bound } from '@blocksuite/global/utils';
+import { Bound } from '@blocksuite/global/gfx';
+import { assertType } from '@blocksuite/global/utils';
 import type { BlockSnapshot, SnapshotNode } from '@blocksuite/store';
 
 import type { SlotBlockPayload, TemplateJob } from './template.js';
@@ -153,8 +154,6 @@ export const createInsertPlaceMiddleware = (targetPlace: Bound) => {
 
     const ignoreType = new Set(['group', 'connector']);
     const changePosition = (blockJson: BlockSnapshot) => {
-      assertExists(templateBound);
-
       if (blockJson.props.xywh) {
         const bound = Bound.deserialize(blockJson.props['xywh'] as string);
 

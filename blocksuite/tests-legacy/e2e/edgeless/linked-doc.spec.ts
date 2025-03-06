@@ -1,4 +1,3 @@
-import { assertNotExists } from '@blocksuite/global/utils';
 import { expect } from '@playwright/test';
 
 import {
@@ -20,7 +19,7 @@ import {
   type,
   waitNextFrame,
 } from '../utils/actions/index.js';
-import { assertConnectorPath, assertExists } from '../utils/asserts.js';
+import { assertConnectorPath } from '../utils/asserts.js';
 import { test } from '../utils/playwright.js';
 
 test.describe('note to linked doc', () => {
@@ -39,12 +38,16 @@ test.describe('note to linked doc', () => {
 
     await waitNextFrame(page, 200);
     const embedSyncedBlock = page.locator('affine-embed-synced-doc-block');
-    assertExists(embedSyncedBlock);
+    if (!embedSyncedBlock) {
+      throw new Error('embedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
     const noteBlock = page.locator('affine-edgeless-note');
-    assertExists(noteBlock);
+    if (!noteBlock) {
+      throw new Error('noteBlock is not found');
+    }
     const noteContent = await noteBlock.innerText();
     expect(noteContent).toBe('Hello\nWorld');
   });
@@ -62,7 +65,9 @@ test.describe('note to linked doc', () => {
 
     await waitNextFrame(page, 200);
     const embedSyncedBlock = page.locator('affine-embed-synced-doc-block');
-    assertExists(embedSyncedBlock);
+    if (!embedSyncedBlock) {
+      throw new Error('embedSyncedBlock is not found');
+    }
 
     await assertConnectorPath(page, [connectorPath[0], connectorPath[1]], 0);
   });
@@ -84,7 +89,7 @@ test.describe('note to linked doc', () => {
     const moreButton = locatorComponentToolbarMoreButton(page);
     await moreButton.click();
     const turnButton = page.locator('.turn-into-linked-doc');
-    assertNotExists(turnButton);
+    expect(turnButton).toBeNull();
   });
 
   // TODO FIX ME
@@ -105,7 +110,7 @@ test.describe('note to linked doc', () => {
     const moreButton = locatorComponentToolbarMoreButton(page);
     await moreButton.click();
     const turnButton = page.locator('.turn-into-linked-doc');
-    assertNotExists(turnButton);
+    expect(turnButton).toBeNull();
   });
 });
 
@@ -117,7 +122,9 @@ test.describe('single edgeless element to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -140,7 +147,9 @@ test.describe('single edgeless element to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -157,7 +166,9 @@ test.describe('single edgeless element to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -185,7 +196,9 @@ test.describe('single edgeless element to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -222,7 +235,9 @@ test.describe('single edgeless element to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -269,7 +284,9 @@ test.describe('multiple edgeless elements to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -305,7 +322,9 @@ test.describe('multiple edgeless elements to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);
@@ -334,7 +353,9 @@ test.describe('multiple edgeless elements to linked doc', () => {
     await triggerComponentToolbarAction(page, 'createLinkedDoc');
     await waitNextFrame(page, 200);
     const linkedSyncedBlock = page.locator('affine-linked-synced-doc-block');
-    assertExists(linkedSyncedBlock);
+    if (!linkedSyncedBlock) {
+      throw new Error('linkedSyncedBlock is not found');
+    }
 
     await triggerComponentToolbarAction(page, 'openLinkedDoc');
     await waitNextFrame(page, 200);

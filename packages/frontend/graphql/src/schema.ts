@@ -82,8 +82,13 @@ export interface Copilot {
   histories: Array<CopilotHistories>;
   /** Get the quota of the user in the workspace */
   quota: CopilotQuota;
-  /** Get the session list in the workspace */
+  /**
+   * Get the session id list in the workspace
+   * @deprecated Use `sessions` instead
+   */
   sessionIds: Array<Scalars['String']['output']>;
+  /** Get the session list in the workspace */
+  sessions: Array<CopilotSessionType>;
   workspaceId: Maybe<Scalars['ID']['output']>;
 }
 
@@ -98,6 +103,11 @@ export interface CopilotHistoriesArgs {
 }
 
 export interface CopilotSessionIdsArgs {
+  docId?: InputMaybe<Scalars['String']['input']>;
+  options?: InputMaybe<QueryChatSessionsInput>;
+}
+
+export interface CopilotSessionsArgs {
   docId?: InputMaybe<Scalars['String']['input']>;
   options?: InputMaybe<QueryChatSessionsInput>;
 }
@@ -259,6 +269,13 @@ export interface CopilotQuota {
   used: Scalars['SafeInt']['output'];
 }
 
+export interface CopilotSessionType {
+  __typename?: 'CopilotSessionType';
+  id: Scalars['ID']['output'];
+  parentSessionId: Maybe<Scalars['ID']['output']>;
+  promptName: Scalars['String']['output'];
+}
+
 export interface CreateChatMessageInput {
   attachments?: InputMaybe<Array<Scalars['String']['input']>>;
   blobs?: InputMaybe<Array<Scalars['Upload']['input']>>;
@@ -383,6 +400,12 @@ export interface DocTypeGrantedUsersListArgs {
   pagination: PaginationInput;
 }
 
+export interface DocUpdateBlockedDataType {
+  __typename?: 'DocUpdateBlockedDataType';
+  docId: Scalars['String']['output'];
+  spaceId: Scalars['String']['output'];
+}
+
 export interface EditorType {
   __typename?: 'EditorType';
   avatarUrl: Maybe<Scalars['String']['output']>;
@@ -403,6 +426,7 @@ export type ErrorDataUnion =
   | DocActionDeniedDataType
   | DocHistoryNotFoundDataType
   | DocNotFoundDataType
+  | DocUpdateBlockedDataType
   | ExpectToGrantDocUserRolesDataType
   | ExpectToRevokeDocUserRolesDataType
   | ExpectToUpdateDocUserRoleDataType
@@ -410,6 +434,7 @@ export type ErrorDataUnion =
   | InvalidEmailDataType
   | InvalidHistoryTimestampDataType
   | InvalidLicenseUpdateParamsDataType
+  | InvalidOauthCallbackCodeDataType
   | InvalidPasswordLengthDataType
   | InvalidRuntimeConfigTypeDataType
   | MemberNotFoundInSpaceDataType
@@ -446,6 +471,7 @@ export enum ErrorNames {
   CANNOT_DELETE_OWN_ACCOUNT = 'CANNOT_DELETE_OWN_ACCOUNT',
   CANT_UPDATE_ONETIME_PAYMENT_SUBSCRIPTION = 'CANT_UPDATE_ONETIME_PAYMENT_SUBSCRIPTION',
   CAN_NOT_BATCH_GRANT_DOC_OWNER_PERMISSIONS = 'CAN_NOT_BATCH_GRANT_DOC_OWNER_PERMISSIONS',
+  CAN_NOT_REVOKE_YOURSELF = 'CAN_NOT_REVOKE_YOURSELF',
   CAPTCHA_VERIFICATION_FAILED = 'CAPTCHA_VERIFICATION_FAILED',
   COPILOT_ACTION_TAKEN = 'COPILOT_ACTION_TAKEN',
   COPILOT_CONTEXT_FILE_NOT_SUPPORTED = 'COPILOT_CONTEXT_FILE_NOT_SUPPORTED',
@@ -468,6 +494,7 @@ export enum ErrorNames {
   DOC_HISTORY_NOT_FOUND = 'DOC_HISTORY_NOT_FOUND',
   DOC_IS_NOT_PUBLIC = 'DOC_IS_NOT_PUBLIC',
   DOC_NOT_FOUND = 'DOC_NOT_FOUND',
+  DOC_UPDATE_BLOCKED = 'DOC_UPDATE_BLOCKED',
   EARLY_ACCESS_REQUIRED = 'EARLY_ACCESS_REQUIRED',
   EMAIL_ALREADY_USED = 'EMAIL_ALREADY_USED',
   EMAIL_TOKEN_NOT_FOUND = 'EMAIL_TOKEN_NOT_FOUND',
@@ -489,6 +516,7 @@ export enum ErrorNames {
   INVALID_LICENSE_SESSION_ID = 'INVALID_LICENSE_SESSION_ID',
   INVALID_LICENSE_TO_ACTIVATE = 'INVALID_LICENSE_TO_ACTIVATE',
   INVALID_LICENSE_UPDATE_PARAMS = 'INVALID_LICENSE_UPDATE_PARAMS',
+  INVALID_OAUTH_CALLBACK_CODE = 'INVALID_OAUTH_CALLBACK_CODE',
   INVALID_OAUTH_CALLBACK_STATE = 'INVALID_OAUTH_CALLBACK_STATE',
   INVALID_PASSWORD_LENGTH = 'INVALID_PASSWORD_LENGTH',
   INVALID_RUNTIME_CONFIG_TYPE = 'INVALID_RUNTIME_CONFIG_TYPE',
@@ -505,6 +533,7 @@ export enum ErrorNames {
   NO_COPILOT_PROVIDER_AVAILABLE = 'NO_COPILOT_PROVIDER_AVAILABLE',
   OAUTH_ACCOUNT_ALREADY_CONNECTED = 'OAUTH_ACCOUNT_ALREADY_CONNECTED',
   OAUTH_STATE_EXPIRED = 'OAUTH_STATE_EXPIRED',
+  OWNER_CAN_NOT_LEAVE_WORKSPACE = 'OWNER_CAN_NOT_LEAVE_WORKSPACE',
   PASSWORD_REQUIRED = 'PASSWORD_REQUIRED',
   QUERY_TOO_LONG = 'QUERY_TOO_LONG',
   RUNTIME_CONFIG_NOT_FOUND = 'RUNTIME_CONFIG_NOT_FOUND',
@@ -614,6 +643,12 @@ export interface InvalidHistoryTimestampDataType {
 export interface InvalidLicenseUpdateParamsDataType {
   __typename?: 'InvalidLicenseUpdateParamsDataType';
   reason: Scalars['String']['output'];
+}
+
+export interface InvalidOauthCallbackCodeDataType {
+  __typename?: 'InvalidOauthCallbackCodeDataType';
+  body: Scalars['String']['output'];
+  status: Scalars['Int']['output'];
 }
 
 export interface InvalidPasswordLengthDataType {
@@ -781,7 +816,7 @@ export interface Mutation {
   /** add a doc to context */
   addContextDoc: Array<CopilotContextListItem>;
   addWorkspaceFeature: Scalars['Boolean']['output'];
-  approveMember: Scalars['String']['output'];
+  approveMember: Scalars['Boolean']['output'];
   cancelSubscription: SubscriptionType;
   changeEmail: UserType;
   changePassword: Scalars['Boolean']['output'];
@@ -817,7 +852,7 @@ export interface Mutation {
   forkCopilotSession: Scalars['String']['output'];
   generateLicenseKey: Scalars['String']['output'];
   grantDocUserRoles: Scalars['Boolean']['output'];
-  grantMember: Scalars['String']['output'];
+  grantMember: Scalars['Boolean']['output'];
   invite: Scalars['String']['output'];
   inviteBatch: Array<InviteResult>;
   leaveWorkspace: Scalars['Boolean']['output'];
@@ -1233,15 +1268,16 @@ export interface Query {
   error: ErrorDataUnion;
   /** send workspace invitation */
   getInviteInfo: InvitationType;
-  /** Get is admin of workspace */
-  isAdmin: Scalars['Boolean']['output'];
-  /** Get is owner of workspace */
-  isOwner: Scalars['Boolean']['output'];
   /**
-   * List blobs of workspace
-   * @deprecated use `workspace.blobs` instead
+   * Get is admin of workspace
+   * @deprecated use WorkspaceType[role] instead
    */
-  listBlobs: Array<Scalars['String']['output']>;
+  isAdmin: Scalars['Boolean']['output'];
+  /**
+   * Get is owner of workspace
+   * @deprecated use WorkspaceType[role] instead
+   */
+  isOwner: Scalars['Boolean']['output'];
   /** List all copilot prompts */
   listCopilotPrompts: Array<CopilotPromptType>;
   prices: Array<SubscriptionPrice>;
@@ -1262,7 +1298,10 @@ export interface Query {
   usersCount: Scalars['Int']['output'];
   /** Get workspace by id */
   workspace: WorkspaceType;
-  /** Get workspace role permissions */
+  /**
+   * Get workspace role permissions
+   * @deprecated use WorkspaceType[permissions] instead
+   */
   workspaceRolePermissions: WorkspaceRolePermissions;
   /** Get all accessible workspaces for current user */
   workspaces: Array<WorkspaceType>;
@@ -1281,10 +1320,6 @@ export interface QueryIsAdminArgs {
 }
 
 export interface QueryIsOwnerArgs {
-  workspaceId: Scalars['String']['input'];
-}
-
-export interface QueryListBlobsArgs {
   workspaceId: Scalars['String']['input'];
 }
 
@@ -1700,13 +1735,20 @@ export interface WorkspacePermissionNotFoundDataType {
 
 export interface WorkspacePermissions {
   __typename?: 'WorkspacePermissions';
+  Workspace_Adminitrators_Manage: Scalars['Boolean']['output'];
+  Workspace_Blobs_List: Scalars['Boolean']['output'];
+  Workspace_Blobs_Read: Scalars['Boolean']['output'];
+  Workspace_Blobs_Write: Scalars['Boolean']['output'];
+  Workspace_Copilot: Scalars['Boolean']['output'];
   Workspace_CreateDoc: Scalars['Boolean']['output'];
   Workspace_Delete: Scalars['Boolean']['output'];
   Workspace_Organize_Read: Scalars['Boolean']['output'];
+  Workspace_Payment_Manage: Scalars['Boolean']['output'];
   Workspace_Properties_Create: Scalars['Boolean']['output'];
   Workspace_Properties_Delete: Scalars['Boolean']['output'];
   Workspace_Properties_Read: Scalars['Boolean']['output'];
   Workspace_Properties_Update: Scalars['Boolean']['output'];
+  Workspace_Read: Scalars['Boolean']['output'];
   Workspace_Settings_Read: Scalars['Boolean']['output'];
   Workspace_Settings_Update: Scalars['Boolean']['output'];
   Workspace_Sync: Scalars['Boolean']['output'];
@@ -1779,6 +1821,8 @@ export interface WorkspaceType {
   owner: UserType;
   /** Cloud page metadata of workspace */
   pageMeta: WorkspacePageMeta;
+  /** map of action permissions */
+  permissions: WorkspacePermissions;
   /** is Public workspace */
   public: Scalars['Boolean']['output'];
   /** Get public docs of a workspace */
@@ -2236,7 +2280,15 @@ export type GetCopilotSessionsQuery = {
   __typename?: 'Query';
   currentUser: {
     __typename?: 'UserType';
-    copilot: { __typename?: 'Copilot'; sessionIds: Array<string> };
+    copilot: {
+      __typename?: 'Copilot';
+      sessions: Array<{
+        __typename?: 'CopilotSessionType';
+        id: string;
+        parentSessionId: string | null;
+        promptName: string;
+      }>;
+    };
   } | null;
 };
 
@@ -3383,13 +3435,20 @@ export type GetWorkspaceRolePermissionsQuery = {
     __typename?: 'WorkspaceRolePermissions';
     permissions: {
       __typename?: 'WorkspacePermissions';
+      Workspace_Adminitrators_Manage: boolean;
+      Workspace_Blobs_List: boolean;
+      Workspace_Blobs_Read: boolean;
+      Workspace_Blobs_Write: boolean;
+      Workspace_Copilot: boolean;
       Workspace_CreateDoc: boolean;
       Workspace_Delete: boolean;
       Workspace_Organize_Read: boolean;
+      Workspace_Payment_Manage: boolean;
       Workspace_Properties_Create: boolean;
       Workspace_Properties_Delete: boolean;
       Workspace_Properties_Read: boolean;
       Workspace_Properties_Update: boolean;
+      Workspace_Read: boolean;
       Workspace_Settings_Read: boolean;
       Workspace_Settings_Update: boolean;
       Workspace_Sync: boolean;
@@ -3407,7 +3466,7 @@ export type ApproveWorkspaceTeamMemberMutationVariables = Exact<{
 
 export type ApproveWorkspaceTeamMemberMutation = {
   __typename?: 'Mutation';
-  approveMember: string;
+  approveMember: boolean;
 };
 
 export type GrantWorkspaceTeamMemberMutationVariables = Exact<{
@@ -3418,7 +3477,7 @@ export type GrantWorkspaceTeamMemberMutationVariables = Exact<{
 
 export type GrantWorkspaceTeamMemberMutation = {
   __typename?: 'Mutation';
-  grantMember: string;
+  grantMember: boolean;
 };
 
 export type Queries =

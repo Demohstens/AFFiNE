@@ -1,10 +1,6 @@
 import { css } from 'lit';
 
 export const codeBlockStyles = css`
-  affine-code {
-    position: relative;
-  }
-
   .affine-code-block-container {
     font-size: var(--affine-font-xs);
     line-height: var(--affine-line-height);
@@ -17,6 +13,10 @@ export const codeBlockStyles = css`
 
   .affine-code-block-container.mobile {
     padding: 12px;
+  }
+
+  .affine-code-block-container rich-text {
+    overflow-x: hidden;
   }
 
   .affine-code-block-container .inline-editor {

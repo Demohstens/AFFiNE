@@ -217,6 +217,7 @@ export class DocFrontend {
 
       while (true) {
         throwIfAborted(signal);
+
         const docId = await this.status.jobDocQueue.asyncPop(signal);
         const jobs = this.status.jobMap.get(docId);
         this.status.jobMap.delete(docId);
@@ -244,6 +245,9 @@ export class DocFrontend {
         if (save?.length) {
           await this.jobs.save(docId, save as any, signal);
         }
+
+        this.status.currentJob = null;
+        this.statusUpdatedSubject$.next(docId);
       }
     } finally {
       dispose();
@@ -399,31 +403,23 @@ export class DocFrontend {
     this.statusUpdatedSubject$.next(job.docId);
   }
 
-  /**
-   * skip listen doc update when apply update
-   */
-  private skipDocUpdate = false;
-
   applyUpdate(docId: string, update: Uint8Array) {
     const doc = this.status.docs.get(docId);
     if (doc && !isEmptyUpdate(update)) {
       try {
-        this.skipDocUpdate = true;
         applyUpdate(doc, update, NBSTORE_ORIGIN);
       } catch (err) {
         console.error('failed to apply update yjs doc', err);
-      } finally {
-        this.skipDocUpdate = false;
       }
     }
   }
 
   private readonly handleDocUpdate = (
     update: Uint8Array,
-    _origin: any,
+    origin: any,
     doc: YDoc
   ) => {
-    if (this.skipDocUpdate) {
+    if (origin === NBSTORE_ORIGIN) {
       return;
     }
     if (!this.status.docs.has(doc.guid)) {
@@ -494,7 +490,7 @@ export class DocFrontend {
     return Promise.race([
       new Promise<void>(resolve => {
         sub = this.docState$(docId).subscribe(state => {
-          if (state.syncing) {
+          if (state.synced && !state.updating) {
             resolve();
           }
         });

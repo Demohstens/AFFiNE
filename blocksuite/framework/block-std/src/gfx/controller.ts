@@ -1,14 +1,14 @@
 import {
-  assertType,
   Bound,
-  DisposableGroup,
   getCommonBound,
   getCommonBoundWithRotation,
   type IBound,
-  last,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { DisposableGroup } from '@blocksuite/global/slot';
+import { assertType } from '@blocksuite/global/utils';
 import type { BlockModel } from '@blocksuite/store';
 import { Signal } from '@preact/signals-core';
+import last from 'lodash-es/last';
 
 import { LifeCycleWatcher } from '../extension/lifecycle-watcher.js';
 import type { BlockStdScope } from '../scope/block-std-scope.js';

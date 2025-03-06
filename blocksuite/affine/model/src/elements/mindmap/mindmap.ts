@@ -12,16 +12,12 @@ import {
   observe,
   watch,
 } from '@blocksuite/block-std/gfx';
-import type { Bound, SerializedXYWH, XYWH } from '@blocksuite/global/utils';
-import {
-  assertType,
-  deserializeXYWH,
-  keys,
-  last,
-  noop,
-  pick,
-} from '@blocksuite/global/utils';
+import type { Bound, SerializedXYWH, XYWH } from '@blocksuite/global/gfx';
+import { deserializeXYWH } from '@blocksuite/global/gfx';
+import { assertType, noop } from '@blocksuite/global/utils';
 import { generateKeyBetween } from 'fractional-indexing';
+import last from 'lodash-es/last';
+import pick from 'lodash-es/pick';
 import * as Y from 'yjs';
 import { z } from 'zod';
 
@@ -188,11 +184,11 @@ export class MindmapElementModel extends GfxGroupLikeElementModel<MindmapElement
     ) {
       const children: Y.Map<NodeDetail> = new Y.Map();
 
-      keys(props.children).forEach(key => {
-        const detail = pick<Record<string, unknown>, keyof NodeDetail>(
-          props.children![key],
-          ['index', 'parent']
-        );
+      Object.entries(props.children).forEach(([key, value]) => {
+        const detail = pick<Record<string, unknown>, keyof NodeDetail>(value, [
+          'index',
+          'parent',
+        ]);
         children.set(key as string, detail as NodeDetail);
       });
 

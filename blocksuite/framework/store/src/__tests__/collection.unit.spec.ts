@@ -1,32 +1,20 @@
-// checkout https://vitest.dev/guide/debugging.html for debugging tests
-
-import type { Slot } from '@blocksuite/global/utils';
+import type { Slot } from '@blocksuite/global/slot';
 import { assert, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyUpdate, type Doc, encodeStateAsUpdate } from 'yjs';
 
-import type { BlockModel, BlockSchemaType, DocMeta, Store } from '../index.js';
-import { Schema } from '../index.js';
+import type { BlockModel, DocMeta, Store } from '../index.js';
 import { Text } from '../reactive/text.js';
 import { createAutoIncrementIdGenerator } from '../test/index.js';
 import { TestWorkspace } from '../test/test-workspace.js';
 import {
-  NoteBlockSchema,
-  ParagraphBlockSchema,
-  RootBlockSchema,
+  NoteBlockSchemaExtension,
+  ParagraphBlockSchemaExtension,
+  RootBlockSchemaExtension,
 } from './test-schema.js';
-import { assertExists } from './test-utils-dom.js';
-
-export const BlockSchemas = [
-  ParagraphBlockSchema,
-  RootBlockSchema,
-  NoteBlockSchema,
-] as BlockSchemaType[];
 
 function createTestOptions() {
   const idGenerator = createAutoIncrementIdGenerator();
-  const schema = new Schema();
-  schema.register(BlockSchemas);
-  return { id: 'test-collection', idGenerator, schema };
+  return { id: 'test-collection', idGenerator };
 }
 
 const defaultDocId = 'doc:home';
@@ -58,11 +46,20 @@ function createRoot(doc: Store) {
   return doc.root;
 }
 
+const extensions = [
+  NoteBlockSchemaExtension,
+  ParagraphBlockSchemaExtension,
+  RootBlockSchemaExtension,
+];
+
 function createTestDoc(docId = defaultDocId) {
   const options = createTestOptions();
   const collection = new TestWorkspace(options);
   collection.meta.initialize();
-  const doc = collection.createDoc({ id: docId });
+  const doc = collection.createDoc({
+    id: docId,
+    extensions,
+  });
   doc.load();
   return doc;
 }
@@ -113,13 +110,6 @@ describe('basic', () => {
             tags: [],
           },
         ],
-        workspaceVersion: 2,
-        pageVersion: 2,
-        blockVersions: {
-          'affine:note': 1,
-          'affine:page': 2,
-          'affine:paragraph': 1,
-        },
       },
       spaces: {
         [spaceId]: {
@@ -155,6 +145,7 @@ describe('basic', () => {
     collection.meta.initialize();
     const doc = collection.createDoc({
       id: 'space:0',
+      extensions,
     });
 
     const readyCallback = vi.fn();
@@ -181,6 +172,7 @@ describe('basic', () => {
     const collection2 = new TestWorkspace(options);
     const doc = collection.createDoc({
       id: 'space:0',
+      extensions,
     });
     doc.load(() => {
       doc.addBlock('affine:page', {
@@ -209,8 +201,12 @@ describe('basic', () => {
       // apply doc update
       const update = encodeStateAsUpdate(doc.spaceDoc);
       expect(collection2.docs.size).toBe(1);
-      const doc2 = collection2.getDoc('space:0');
-      assertExists(doc2);
+      const doc2 = collection2.getDoc('space:0', {
+        extensions,
+      });
+      if (!doc2) {
+        throw new Error('doc2 is not found');
+      }
       applyUpdate(doc2.spaceDoc, update);
       expect(serializCollection(collection2.doc)['spaces']).toEqual({
         'space:0': {

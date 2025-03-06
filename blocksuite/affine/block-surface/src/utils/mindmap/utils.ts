@@ -13,7 +13,10 @@ import {
   generateKeyBetween,
   type SurfaceBlockModel,
 } from '@blocksuite/block-std/gfx';
-import { assertType, isEqual, type IVec, last } from '@blocksuite/global/utils';
+import type { IVec } from '@blocksuite/global/gfx';
+import { assertType } from '@blocksuite/global/utils';
+import isEqual from 'lodash-es/isEqual';
+import last from 'lodash-es/last';
 import * as Y from 'yjs';
 
 import { fitContent } from '../../renderer/elements/shape/utils.js';

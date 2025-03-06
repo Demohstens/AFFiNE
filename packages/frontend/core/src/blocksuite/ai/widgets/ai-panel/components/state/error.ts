@@ -1,5 +1,5 @@
 import type { EditorHost } from '@blocksuite/affine/block-std';
-import { WithDisposable } from '@blocksuite/affine/global/utils';
+import { WithDisposable } from '@blocksuite/affine/global/lit';
 import { baseTheme } from '@toeverything/theme';
 import { css, html, LitElement, nothing, unsafeCSS } from 'lit';
 import { property } from 'lit/decorators.js';
@@ -164,7 +164,8 @@ export class AIPanelError extends WithDisposable(LitElement) {
           () =>
             html` <div class="error-info">
                 You've reached the current usage cap for AFFiNE AI. You can
-                subscribe to AFFiNE AI to continue the AI experience!
+                subscribe to AFFiNE AI(with free 7-day-trial) to continue the AI
+                experience!
               </div>
               <div class="action-button-group">
                 <div @click=${this.config.cancel} class="action-button">

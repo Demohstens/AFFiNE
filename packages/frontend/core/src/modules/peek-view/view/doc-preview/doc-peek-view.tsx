@@ -10,11 +10,11 @@ import { GuardService } from '@affine/core/modules/permissions';
 import { DebugLogger } from '@affine/debug';
 import { GfxControllerIdentifier } from '@blocksuite/affine/block-std/gfx';
 import { RefNodeSlotsProvider } from '@blocksuite/affine/blocks';
+import { Bound } from '@blocksuite/affine/global/gfx';
 import {
-  Bound,
   type Disposable,
   DisposableGroup,
-} from '@blocksuite/affine/global/utils';
+} from '@blocksuite/affine/global/slot';
 import {
   FrameworkScope,
   useLiveData,

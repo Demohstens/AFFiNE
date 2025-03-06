@@ -6,7 +6,7 @@ import {
 } from '@blocksuite/affine-shared/services';
 import type { ColorEvent } from '@blocksuite/affine-shared/utils';
 import type { GfxToolsFullOptionValue } from '@blocksuite/block-std/gfx';
-import { SignalWatcher } from '@blocksuite/global/utils';
+import { SignalWatcher } from '@blocksuite/global/lit';
 import { computed } from '@preact/signals-core';
 import { css, html, LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
@@ -65,7 +65,7 @@ export class EdgelessBrushMenu extends EdgelessToolbarToolMixin(
             class="one-way"
             .value=${this._props$.value.color}
             .theme=${this._theme$.value}
-            .palettes=${DefaultTheme.StrokeColorPalettes}
+            .palettes=${DefaultTheme.StrokeColorShortPalettes}
             .hasTransparent=${!this.edgeless.doc
               .get(FeatureFlagService)
               .getFlag('enable_color_picker')}

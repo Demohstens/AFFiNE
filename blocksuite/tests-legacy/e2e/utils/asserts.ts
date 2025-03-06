@@ -12,7 +12,6 @@ import type {
   RichText,
   RootBlockModel,
 } from '@blocksuite/blocks';
-import { assertExists } from '@blocksuite/global/utils';
 import type { InlineRootElement } from '@blocksuite/inline';
 import type { BlockModel } from '@blocksuite/store';
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -53,8 +52,6 @@ import {
 } from './actions/misc.js';
 import { getStringFromRichText } from './inline-editor.js';
 
-export { assertExists };
-
 const BLOCK_ID_ATTR = 'data-block-id';
 
 export const defaultStore = {
@@ -66,33 +63,6 @@ export const defaultStore = {
         tags: [],
       },
     ],
-    blockVersions: {
-      'affine:paragraph': 1,
-      'affine:page': 2,
-      'affine:database': 3,
-      'affine:data-view': 1,
-      'affine:list': 1,
-      'affine:note': 1,
-      'affine:divider': 1,
-      'affine:embed-youtube': 1,
-      'affine:embed-figma': 1,
-      'affine:embed-github': 1,
-      'affine:embed-loom': 1,
-      'affine:embed-html': 1,
-      'affine:embed-linked-doc': 1,
-      'affine:embed-synced-doc': 1,
-      'affine:image': 1,
-      'affine:latex': 1,
-      'affine:frame': 1,
-      'affine:code': 1,
-      'affine:surface': 5,
-      'affine:bookmark': 1,
-      'affine:attachment': 1,
-      'affine:surface-ref': 1,
-      'affine:edgeless-text': 1,
-    },
-    workspaceVersion: 2,
-    pageVersion: 2,
   },
   spaces: {
     'doc:home': {

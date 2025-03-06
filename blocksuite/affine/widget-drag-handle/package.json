@@ -13,6 +13,7 @@
   "author": "toeverything",
   "license": "MIT",
   "dependencies": {
+    "@blocksuite/affine-block-callout": "workspace:*",
     "@blocksuite/affine-block-list": "workspace:*",
     "@blocksuite/affine-block-note": "workspace:*",
     "@blocksuite/affine-block-paragraph": "workspace:*",
@@ -25,11 +26,13 @@
     "@blocksuite/icons": "^2.2.1",
     "@blocksuite/inline": "workspace:*",
     "@blocksuite/store": "workspace:*",
-    "@floating-ui/dom": "^1.6.10",
+    "@floating-ui/dom": "^1.6.13",
     "@lit/context": "^1.1.2",
     "@preact/signals-core": "^1.8.0",
     "@toeverything/theme": "^1.1.12",
+    "@types/lodash-es": "^4.17.12",
     "lit": "^3.2.0",
+    "lodash-es": "^4.17.21",
     "minimatch": "^10.0.1",
     "zod": "^3.23.8"
   },

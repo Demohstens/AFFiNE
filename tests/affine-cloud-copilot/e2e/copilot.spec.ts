@@ -103,18 +103,8 @@ const clearChat = async (page: Page) => {
   await page.waitForTimeout(500);
 };
 
-const collectChat = async (page: Page) => {
-  await page.waitForTimeout(ONE_SECOND);
+const collectHistory = async (page: Page) => {
   const chatPanel = await page.waitForSelector('.chat-panel-messages');
-  if (await chatPanel.$('.chat-panel-messages-placeholder')) {
-    return [];
-  }
-  // wait ai response
-  await page.waitForSelector('.chat-panel-messages .message chat-copy-more');
-  await page.waitForTimeout(200);
-  const lastMessage = await chatPanel.$$('.message').then(m => m[m.length - 1]);
-  await lastMessage.waitForSelector('chat-copy-more');
-  await page.waitForTimeout(200);
   return Promise.all(
     Array.from(await chatPanel.$$('.message')).map(async m => ({
       name: await m.$('.user-info').then(i => i?.innerText()),
@@ -124,6 +114,23 @@ const collectChat = async (page: Page) => {
         .then(e => e?.innerText()),
     }))
   );
+};
+
+const collectChat = async (page: Page) => {
+  await page.waitForTimeout(ONE_SECOND);
+  const chatPanel = await page.waitForSelector('.chat-panel-messages');
+  if (await chatPanel.$('.messages-placeholder')) {
+    return [];
+  }
+  // wait ai response
+  await page.waitForSelector('.chat-panel-messages .message chat-copy-more', {
+    timeout: ONE_MINUTE,
+  });
+  await page.waitForTimeout(200);
+  const lastMessage = await chatPanel.$$('.message').then(m => m[m.length - 1]);
+  await lastMessage.waitForSelector('chat-copy-more');
+  await page.waitForTimeout(200);
+  return collectHistory(page);
 };
 
 const focusToEditor = async (page: Page) => {
@@ -262,7 +269,7 @@ test.describe('chat panel', () => {
     await focusToEditor(page);
     // insert below
     await page.getByTestId('action-insert-below').click();
-    await page.waitForSelector('affine-format-bar-widget editor-toolbar');
+    await page.waitForSelector('affine-toolbar-widget editor-toolbar');
     const editorContent = await getEditorContent(page);
     expect(editorContent).toBe(content);
   });
@@ -368,6 +375,18 @@ test.describe('chat panel', () => {
           )
         )
       ).toStrictEqual(contents);
+    });
+
+    test('can save chat to block and clear history', async ({ page }) => {
+      await collectChat(page);
+      expect(await getPageMode(page)).toBe('page');
+      await page.getByTestId('action-save-chat-to-block').click();
+      await page.waitForSelector('affine-edgeless-ai-chat');
+
+      await page.reload();
+      await page.waitForTimeout(200);
+      await clearChat(page);
+      expect((await collectChat(page)).length).toBe(0);
     });
 
     test('chat in center peek', async ({ page }) => {
@@ -676,6 +695,7 @@ test.describe('chat with block', () => {
       await createLocalWorkspace({ name: 'test' }, page);
       await clickNewPageButton(page);
       await pasteTextToPageEditor(page, 'Mac Mini');
+      await openChat(page);
     });
 
     test.beforeEach(async ({ page }) => {
@@ -747,6 +767,19 @@ test.describe('chat with block', () => {
           expect(makeItReal).toBeTruthy();
         } else {
           expect(await collectTextAnswer(page)).toBeTruthy();
+        }
+        // TODO some actions do not have history yet
+        if (
+          option !== 'Generate presentation' &&
+          option !== 'Brainstorm ideas with mind map'
+        ) {
+          const history = await collectHistory(page);
+          expect(history.length).toBe(1);
+          expect(history[0].name).toBe('AFFiNE AI');
+          const discard = await page.waitForSelector('.ai-item-discard');
+          await discard.click();
+          await clearChat(page);
+          expect((await collectHistory(page)).length).toBe(0);
         }
       });
     }
@@ -884,6 +917,43 @@ test.describe('chat with block', () => {
         });
       }
     });
+  });
+
+  test('clear history', async ({ page }) => {
+    await page.reload();
+    await clickSideBarAllPageButton(page);
+    await page.waitForTimeout(200);
+    await createLocalWorkspace({ name: 'test' }, page);
+    await clickNewPageButton(page);
+    await focusToEditor(page);
+    await page.keyboard.type('Mac Mini');
+    await openChat(page);
+
+    await makeChat(page, 'hello');
+    await collectHistory(page);
+
+    await page.waitForSelector('affine-paragraph').then(i => i.click());
+    await page.keyboard.press('ControlOrMeta+A');
+    await page
+      .waitForSelector('page-editor editor-toolbar ask-ai-icon', {
+        state: 'attached',
+        timeout: 10000,
+      })
+      .then(b => b.click());
+    await disableEditorBlank(page);
+    await page
+      .waitForSelector(
+        `.ai-item-${`Fix spelling`.replaceAll(' ', '-').toLowerCase()}`
+      )
+      .then(i => i.click());
+    await collectTextAnswer(page);
+
+    await page.reload();
+    await page.waitForTimeout(1000);
+    const history = await collectHistory(page);
+    expect(history.length).toBe(3);
+    await clearChat(page);
+    expect((await collectHistory(page)).length).toBe(0);
   });
 });
 

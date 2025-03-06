@@ -2,7 +2,7 @@ import {
   EditPropsStore,
   ThemeProvider,
 } from '@blocksuite/affine-shared/services';
-import { assertExists, Bound } from '@blocksuite/global/utils';
+import { Bound } from '@blocksuite/global/gfx';
 import {
   type ReactiveController,
   type ReactiveControllerHost,
@@ -199,8 +199,7 @@ export class EdgelessDraggableElementController<T>
     }
 
     const { overlay } = this;
-    assertExists(overlay);
-
+    if (!overlay) return;
     const { x, y } = e;
     const { startPos, scopeRect } = info;
     const offsetX = x - startPos.x;

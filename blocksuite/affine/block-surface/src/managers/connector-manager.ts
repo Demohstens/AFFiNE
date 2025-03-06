@@ -12,12 +12,10 @@ import type {
   GfxLocalElementModel,
   GfxModel,
 } from '@blocksuite/block-std/gfx';
-import type { IBound, IVec, IVec3 } from '@blocksuite/global/utils';
+import { BlockSuiteError } from '@blocksuite/global/exceptions';
+import type { IBound, IVec, IVec3 } from '@blocksuite/global/gfx';
 import {
   almostEqual,
-  assertEquals,
-  assertExists,
-  assertType,
   Bound,
   clamp,
   getBezierCurveBoundingBox,
@@ -27,15 +25,16 @@ import {
   getPointFromBoundsWithRotation,
   isOverlap,
   isVecZero,
-  last,
   lineIntersects,
   PI2,
   PointLocation,
   sign,
   toRadian,
   Vec,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { assertType } from '@blocksuite/global/utils';
 import { effect } from '@preact/signals-core';
+import last from 'lodash-es/last';
 
 import { Overlay } from '../renderer/overlay.js';
 import { AStarRunner } from '../utils/a-star.js';
@@ -151,7 +150,10 @@ export function getAnchors(ele: GfxModel) {
     )
     .forEach(vec => {
       const rst = ele.getLineIntersections(bound.center as IVec, vec as IVec);
-      assertExists(rst);
+      if (!rst) {
+        console.error(`Failed to get line intersections for ${ele.id}`);
+        return;
+      }
       const originPoint = getPointFromBoundsWithRotation(
         { ...bound, rotate: -rotate },
         rst[0]
@@ -495,9 +497,7 @@ function getConnectablePoints(
     pushOuterPoints(points, expandStartBound, expandEndBound, outerBound);
   }
 
-  if (startBound && endBound) {
-    assertExists(expandStartBound);
-    assertExists(expandEndBound);
+  if (startBound && endBound && expandStartBound && expandEndBound) {
     pushGapMidPoint(
       points,
       startPoint,
@@ -562,8 +562,12 @@ function getConnectablePoints(
         almostEqual(item[1], point[1], 0.02)
     );
   }) as IVec3[];
-  assertExists(startEnds[0]);
-  assertExists(startEnds[1]);
+  if (!startEnds[0] || !startEnds[1]) {
+    throw new BlockSuiteError(
+      BlockSuiteError.ErrorCode.ValueNotExists,
+      'Failed to get start and end points when getting connectable points'
+    );
+  }
   return { points, nextStartPoint: startEnds[0], lastEndPoint: startEnds[1] };
 }
 
@@ -599,17 +603,14 @@ function mergePath(points: IVec[] | IVec3[]) {
       continue;
     result.push([cur[0], cur[1]]);
   }
-  result.push(last(points) as IVec);
+  result.push(last(points as IVec[]) as IVec);
   for (let i = 0; i < result.length - 1; i++) {
     const cur = result[i];
     const next = result[i + 1];
-    try {
-      assertEquals(
-        almostEqual(cur[0], next[0], 0.02) ||
-          almostEqual(cur[1], next[1], 0.02),
-        true
-      );
-    } catch {
+    const isAlmostEqual =
+      almostEqual(cur[0], next[0], 0.02) || almostEqual(cur[1], next[1], 0.02);
+    if (!isAlmostEqual) {
+      console.warn('Expected equal points');
       console.warn(points);
       console.warn(result);
     }
@@ -707,7 +708,12 @@ function getNextPoint(
           result,
           [bound.maxX + 10, result[1]]
         );
-        assertExists(intersects);
+        if (!intersects) {
+          throw new BlockSuiteError(
+            BlockSuiteError.ErrorCode.ValueNotExists,
+            'Failed to get line intersections for getNextPoint'
+          );
+        }
         result[0] = intersects[0] + offsetX;
       } else {
         const intersects = lineIntersects(
@@ -716,7 +722,12 @@ function getNextPoint(
           result,
           [bound.x - 10, result[1]]
         );
-        assertExists(intersects);
+        if (!intersects) {
+          throw new BlockSuiteError(
+            BlockSuiteError.ErrorCode.ValueNotExists,
+            'Failed to get line intersections for getNextPoint'
+          );
+        }
         result[0] = intersects[0] - offsetX;
       }
     } else {
@@ -727,7 +738,12 @@ function getNextPoint(
           result,
           [result[0], bound.maxY + 10]
         );
-        assertExists(intersects);
+        if (!intersects) {
+          throw new BlockSuiteError(
+            BlockSuiteError.ErrorCode.ValueNotExists,
+            'Failed to get line intersections for getNextPoint'
+          );
+        }
         result[1] = intersects[1] + offsetY;
       } else {
         const intersects = lineIntersects(
@@ -736,7 +752,12 @@ function getNextPoint(
           result,
           [result[0], bound.y - 10]
         );
-        assertExists(intersects);
+        if (!intersects) {
+          throw new BlockSuiteError(
+            BlockSuiteError.ErrorCode.ValueNotExists,
+            'Failed to get line intersections for getNextPoint'
+          );
+        }
         result[1] = intersects[1] - offsetY;
       }
     }
@@ -1202,9 +1223,14 @@ export class ConnectorPathGenerator extends PathGenerator {
 
     let startPoint: PointLocation | null = null;
     let endPoint: PointLocation | null = null;
-    if (source.id && !source.position && target.id && !target.position) {
-      assertExists(start);
-      assertExists(end);
+    if (
+      source.id &&
+      !source.position &&
+      target.id &&
+      !target.position &&
+      start &&
+      end
+    ) {
       const startAnchors = getAnchors(start);
       const endAnchors = getAnchors(end);
       let minDist = Infinity;

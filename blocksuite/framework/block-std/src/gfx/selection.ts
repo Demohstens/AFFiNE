@@ -1,11 +1,10 @@
 import {
-  assertType,
-  DisposableGroup,
   getCommonBoundWithRotation,
-  groupBy,
   type IPoint,
-  Slot,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { DisposableGroup, Slot } from '@blocksuite/global/slot';
+import { assertType } from '@blocksuite/global/utils';
+import groupBy from 'lodash-es/groupBy';
 
 import {
   BlockSelection,

@@ -1,5 +1,5 @@
 import { ShadowlessElement } from '@blocksuite/block-std';
-import { SignalWatcher, WithDisposable } from '@blocksuite/global/utils';
+import { SignalWatcher, WithDisposable } from '@blocksuite/global/lit';
 import { PlusIcon } from '@blocksuite/icons/lit';
 import {
   autoPlacement,
@@ -246,6 +246,7 @@ export class AddButton extends SignalWatcher(
       this.hoverColumnIndex$.value === this.columns$.value.length - 1;
     const dragging = this.columnDragging$.value;
     return html` <div
+      data-testid="add-column-button"
       class="${classMap({
         [addColumnButtonStyle]: true,
         active: dragging,
@@ -269,6 +270,7 @@ export class AddButton extends SignalWatcher(
     const hovered = this.hoverRowIndex$.value === this.rows$.value.length - 1;
     const dragging = this.rowDragging$.value;
     return html` <div
+      data-testid="add-row-button"
       class="${classMap({
         [addRowButtonStyle]: true,
         active: dragging,

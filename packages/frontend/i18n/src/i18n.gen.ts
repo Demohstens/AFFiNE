@@ -196,9 +196,25 @@ export function useAFFiNEI18N(): {
       */
     Export(): string;
     /**
+      * `Export (Offline)`
+      */
+    ["Export(Offline)"](): string;
+    /**
+      * `Full Sync`
+      */
+    ["Full Sync"](): string;
+    /**
       * `You can export the entire Workspace data for backup, and the exported data can be re-imported.`
       */
     ["Export Description"](): string;
+    /**
+      * `You can export the entire Workspace data for backup, and the exported data can be re-imported. But you are offline now which will cause the exported data not up to date.`
+      */
+    ["Export Description(Offline)"](): string;
+    /**
+      * `You can export the entire Workspace data for backup, and the exported data can be re-imported. But you must sync all cloud data first to keep your exported data up to date.`
+      */
+    ["Full Sync Description"](): string;
     /**
       * `Export failed`
       */
@@ -2206,6 +2222,28 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.import-template.dialog.errorLoad"](): string;
     /**
+      * `Create into a New Workspace`
+      */
+    ["com.affine.import-clipper.dialog.createDocToNewWorkspace"](): string;
+    /**
+      * `Create doc to "{{workspace}}"`
+      */
+    ["com.affine.import-clipper.dialog.createDocToWorkspace"](options: {
+        readonly workspace: string;
+    }): string;
+    /**
+      * `Create doc from Web Clipper`
+      */
+    ["com.affine.import-clipper.dialog.createDocFromClipper"](): string;
+    /**
+      * `Failed to import content, please try again.`
+      */
+    ["com.affine.import-clipper.dialog.errorImport"](): string;
+    /**
+      * `Failed to load content, please try again.`
+      */
+    ["com.affine.import-clipper.dialog.errorLoad"](): string;
+    /**
       * `Support Markdown/Notion`
       */
     ["com.affine.import_file"](): string;
@@ -2675,6 +2713,10 @@ export function useAFFiNEI18N(): {
       * `Workspace name`
       */
     ["com.affine.nameWorkspace.subtitle.workspace-name"](): string;
+    /**
+      * `Workspace type`
+      */
+    ["com.affine.nameWorkspace.subtitle.workspace-type"](): string;
     /**
       * `Name your workspace`
       */
@@ -3513,11 +3555,11 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.payment.cloud.free.benefit.g2-5"](): string;
     /**
-      * `Open-source under MIT license.`
+      * `Local Editor under MIT license.`
       */
     ["com.affine.payment.cloud.free.description"](): string;
     /**
-      * `FOSS + Basic`
+      * `Local FOSS + Cloud Basic`
       */
     ["com.affine.payment.cloud.free.name"](): string;
     /**
@@ -5342,6 +5384,22 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.settings.workspace.experimental-features.enable-mind-map-import.description"](): string;
     /**
+      * `Block Meta`
+      */
+    ["com.affine.settings.workspace.experimental-features.enable-block-meta.name"](): string;
+    /**
+      * `Once enabled, all blocks will have created time, updated time, created by and updated by.`
+      */
+    ["com.affine.settings.workspace.experimental-features.enable-block-meta.description"](): string;
+    /**
+      * `Callout`
+      */
+    ["com.affine.settings.workspace.experimental-features.enable-callout.name"](): string;
+    /**
+      * `Let your words stand out.`
+      */
+    ["com.affine.settings.workspace.experimental-features.enable-callout.description"](): string;
+    /**
       * `Emoji Folder Icon`
       */
     ["com.affine.settings.workspace.experimental-features.enable-emoji-folder-icon.name"](): string;
@@ -7010,6 +7068,10 @@ export function useAFFiNEI18N(): {
       */
     ["error.INTERNAL_SERVER_ERROR"](): string;
     /**
+      * `Network error.`
+      */
+    ["error.NETWORK_ERROR"](): string;
+    /**
       * `Too many requests.`
       */
     ["error.TOO_MANY_REQUEST"](): string;
@@ -7070,6 +7132,13 @@ export function useAFFiNEI18N(): {
       * `Invalid callback state parameter.`
       */
     ["error.INVALID_OAUTH_CALLBACK_STATE"](): string;
+    /**
+      * `Invalid callback code parameter, provider response status: {{status}} and body: {{body}}.`
+      */
+    ["error.INVALID_OAUTH_CALLBACK_CODE"](options: Readonly<{
+        status: string;
+        body: string;
+    }>): string;
     /**
       * `Missing query parameter `{{name}}`.`
       */
@@ -7184,6 +7253,14 @@ export function useAFFiNEI18N(): {
       */
     ["error.SPACE_SHOULD_HAVE_ONLY_ONE_OWNER"](): string;
     /**
+      * `Owner can not leave the workspace.`
+      */
+    ["error.OWNER_CAN_NOT_LEAVE_WORKSPACE"](): string;
+    /**
+      * `You can not revoke your own permission.`
+      */
+    ["error.CAN_NOT_REVOKE_YOURSELF"](): string;
+    /**
       * `Doc {{docId}} under Space {{spaceId}} not found.`
       */
     ["error.DOC_NOT_FOUND"](options: Readonly<{
@@ -7196,6 +7273,13 @@ export function useAFFiNEI18N(): {
     ["error.DOC_ACTION_DENIED"](options: Readonly<{
         action: string;
         docId: string;
+    }>): string;
+    /**
+      * `Doc {{docId}} under Space {{spaceId}} is blocked from updating.`
+      */
+    ["error.DOC_UPDATE_BLOCKED"](options: Readonly<{
+        docId: string;
+        spaceId: string;
     }>): string;
     /**
       * `Your client with version {{version}} is rejected by remote sync server. Please upgrade to {{serverVersion}}.`

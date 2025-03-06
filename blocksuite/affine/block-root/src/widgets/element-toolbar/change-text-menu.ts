@@ -31,12 +31,8 @@ import {
 } from '@blocksuite/affine-model';
 import { FeatureFlagService } from '@blocksuite/affine-shared/services';
 import type { ColorEvent } from '@blocksuite/affine-shared/utils';
-import {
-  Bound,
-  countBy,
-  maxBy,
-  WithDisposable,
-} from '@blocksuite/global/utils';
+import { Bound } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
 import {
   TextAlignCenterIcon,
   TextAlignLeftIcon,
@@ -47,6 +43,8 @@ import { property, query } from 'lit/decorators.js';
 import { choose } from 'lit/directives/choose.js';
 import { join } from 'lit/directives/join.js';
 import { when } from 'lit/directives/when.js';
+import countBy from 'lodash-es/countBy';
+import maxBy from 'lodash-es/maxBy';
 
 import type { EdgelessRootBlockComponent } from '../../edgeless/edgeless-root-block.js';
 import { SmallArrowDownIcon } from './icons.js';
@@ -344,6 +342,10 @@ export class EdgelessChangeTextMenu extends WithDisposable(LitElement) {
       matchFontFaces.length === 1 &&
       matchFontFaces[0].style === selectedFontStyle &&
       matchFontFaces[0].weight === selectedFontWeight;
+    const palettes =
+      this.elementType === 'shape'
+        ? DefaultTheme.ShapeTextColorPalettes
+        : DefaultTheme.Palettes;
 
     return join(
       [
@@ -389,14 +391,14 @@ export class EdgelessChangeTextMenu extends WithDisposable(LitElement) {
             return html`
               <edgeless-color-picker-button
                 class="text-color"
-                .label=${'Text color'}
+                .label="${'Text color'}"
                 .pick=${this.pickColor}
                 .isText=${true}
                 .color=${selectedColor}
                 .colors=${colors}
                 .colorType=${type}
                 .theme=${colorScheme}
-                .palettes=${DefaultTheme.Palettes}
+                .palettes=${palettes}
               >
               </edgeless-color-picker-button>
             `;
@@ -418,7 +420,7 @@ export class EdgelessChangeTextMenu extends WithDisposable(LitElement) {
               <edgeless-color-panel
                 .value=${selectedColor}
                 .theme=${colorScheme}
-                .palettes=${DefaultTheme.Palettes}
+                .palettes=${palettes}
                 @select=${this._setTextColor}
               ></edgeless-color-panel>
             </editor-menu-button>

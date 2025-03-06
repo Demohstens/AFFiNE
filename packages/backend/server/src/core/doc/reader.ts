@@ -14,19 +14,38 @@ import {
   getOrGenRequestId,
   UserFriendlyError,
 } from '../../base';
+import { WorkspaceBlobStorage } from '../storage';
 import {
   type PageDocContent,
   parsePageDoc,
   parseWorkspaceDoc,
-  type WorkspaceDocContent,
 } from '../utils/blocksuite';
 import { PgWorkspaceDocStorageAdapter } from './adapters/workspace';
 import { type DocDiff, type DocRecord } from './storage';
 
 const DOC_CONTENT_CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 
+export interface WorkspaceDocInfo {
+  id: string;
+  name: string;
+  avatarKey?: string;
+  avatarUrl?: string;
+}
+
 export abstract class DocReader {
   constructor(protected readonly cache: Cache) {}
+
+  parseDocContent(bin: Uint8Array) {
+    const doc = new YDoc();
+    applyUpdate(doc, bin);
+    return parsePageDoc(doc);
+  }
+
+  parseWorkspaceContent(bin: Uint8Array) {
+    const doc = new YDoc();
+    applyUpdate(doc, bin);
+    return parseWorkspaceDoc(doc);
+  }
 
   abstract getDoc(
     workspaceId: string,
@@ -39,6 +58,7 @@ export abstract class DocReader {
     stateVector?: Uint8Array
   ): Promise<DocDiff | null>;
 
+  // TODO(@fengmk2): should remove this method after frontend support doc content update
   async getDocContent(
     workspaceId: string,
     docId: string
@@ -58,11 +78,12 @@ export abstract class DocReader {
     return content;
   }
 
+  // TODO(@fengmk2): should remove this method after frontend support workspace content update
   async getWorkspaceContent(
     workspaceId: string
-  ): Promise<WorkspaceDocContent | null> {
+  ): Promise<WorkspaceDocInfo | null> {
     const cacheKey = this.cacheKey(workspaceId, workspaceId);
-    const cachedResult = await this.cache.get<WorkspaceDocContent>(cacheKey);
+    const cachedResult = await this.cache.get<WorkspaceDocInfo>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
@@ -91,7 +112,7 @@ export abstract class DocReader {
 
   protected abstract getWorkspaceContentWithoutCache(
     workspaceId: string
-  ): Promise<WorkspaceDocContent | null>;
+  ): Promise<WorkspaceDocInfo | null>;
 
   protected docDiff(update: Uint8Array, stateVector?: Uint8Array) {
     const missing = stateVector ? diffUpdate(update, stateVector) : update;
@@ -107,7 +128,8 @@ export abstract class DocReader {
 export class DatabaseDocReader extends DocReader {
   constructor(
     protected override readonly cache: Cache,
-    protected readonly workspace: PgWorkspaceDocStorageAdapter
+    protected readonly workspace: PgWorkspaceDocStorageAdapter,
+    protected readonly blobStorage: WorkspaceBlobStorage
   ) {
     super(cache);
   }
@@ -139,21 +161,30 @@ export class DatabaseDocReader extends DocReader {
     if (!docRecord) {
       return null;
     }
-    const doc = new YDoc();
-    applyUpdate(doc, docRecord.bin);
-    return parsePageDoc(doc);
+    return this.parseDocContent(docRecord.bin);
   }
 
   protected override async getWorkspaceContentWithoutCache(
     workspaceId: string
-  ): Promise<WorkspaceDocContent | null> {
+  ): Promise<WorkspaceDocInfo | null> {
     const docRecord = await this.workspace.getDoc(workspaceId, workspaceId);
     if (!docRecord) {
       return null;
     }
-    const doc = new YDoc();
-    applyUpdate(doc, docRecord.bin);
-    return parseWorkspaceDoc(doc);
+    const content = this.parseWorkspaceContent(docRecord.bin);
+    if (!content) {
+      return null;
+    }
+    let avatarUrl: string | undefined;
+    if (content.avatarKey) {
+      avatarUrl = this.blobStorage.getAvatarUrl(workspaceId, content.avatarKey);
+    }
+    return {
+      id: workspaceId,
+      name: content.name,
+      avatarKey: content.avatarKey,
+      avatarUrl,
+    };
   }
 }
 
@@ -165,9 +196,10 @@ export class RpcDocReader extends DatabaseDocReader {
     private readonly config: Config,
     private readonly crypto: CryptoHelper,
     protected override readonly cache: Cache,
-    protected override readonly workspace: PgWorkspaceDocStorageAdapter
+    protected override readonly workspace: PgWorkspaceDocStorageAdapter,
+    protected override readonly blobStorage: WorkspaceBlobStorage
   ) {
-    super(cache, workspace);
+    super(cache, workspace, blobStorage);
   }
 
   private async fetch(
@@ -183,11 +215,14 @@ export class RpcDocReader extends DatabaseDocReader {
     if (body) {
       headers['content-type'] = 'application/octet-stream';
     }
-    const res = await fetch(url, {
+    const requestInit: RequestInit = {
       method,
       headers,
-      body,
-    });
+    };
+    if (body) {
+      requestInit.body = body;
+    }
+    const res = await fetch(url, requestInit);
     if (!res.ok) {
       if (res.status === 404) {
         return null;
@@ -302,7 +337,7 @@ export class RpcDocReader extends DatabaseDocReader {
 
   protected override async getWorkspaceContentWithoutCache(
     workspaceId: string
-  ): Promise<WorkspaceDocContent | null> {
+  ): Promise<WorkspaceDocInfo | null> {
     const url = `${this.config.docService.endpoint}/rpc/workspaces/${workspaceId}/content`;
     const accessToken = this.crypto.sign(workspaceId);
     try {
@@ -310,7 +345,7 @@ export class RpcDocReader extends DatabaseDocReader {
       if (!res) {
         return null;
       }
-      return (await res.json()) as WorkspaceDocContent;
+      return (await res.json()) as WorkspaceDocInfo;
     } catch (e) {
       if (e instanceof UserFriendlyError) {
         throw e;

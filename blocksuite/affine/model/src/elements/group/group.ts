@@ -10,8 +10,8 @@ import {
   local,
   observe,
 } from '@blocksuite/block-std/gfx';
-import type { IVec, PointLocation } from '@blocksuite/global/utils';
-import { Bound, keys, linePolygonIntersects } from '@blocksuite/global/utils';
+import type { IVec, PointLocation } from '@blocksuite/global/gfx';
+import { Bound, linePolygonIntersects } from '@blocksuite/global/gfx';
 import * as Y from 'yjs';
 
 type GroupElementProps = BaseElementProps & {
@@ -43,7 +43,7 @@ export class GroupElementModel extends GfxGroupLikeElementModel<GroupElementProp
     if (props.children && !(props.children instanceof Y.Map)) {
       const children = new Y.Map() as Y.Map<boolean>;
 
-      keys(props.children).forEach(key => {
+      Object.keys(props.children).forEach(key => {
         children.set(key as string, true);
       });
 

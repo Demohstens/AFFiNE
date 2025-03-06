@@ -37,12 +37,11 @@ import {
 } from '@blocksuite/block-std/gfx';
 import { BlockSuiteError, ErrorCode } from '@blocksuite/global/exceptions';
 import {
-  assertExists,
   Bound,
   deserializeXYWH,
-  DisposableGroup,
   type SerializedXYWH,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { DisposableGroup } from '@blocksuite/global/slot';
 import { DeleteIcon, EdgelessIcon, FrameIcon } from '@blocksuite/icons/lit';
 import type { BaseSelection, Store } from '@blocksuite/store';
 import { css, html, nothing, type TemplateResult } from 'lit';
@@ -280,7 +279,7 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
         },
       ]);
       const model = this.doc.getBlockById(paragraphId);
-      assertExists(model, `Failed to add paragraph block.`);
+      if (!model) return;
 
       requestConnectedFrame(() => {
         selection.update(selList => {
@@ -423,8 +422,9 @@ export class SurfaceRefBlockComponent extends BlockComponent<SurfaceRefBlockMode
 
       override mounted() {
         const disposable = this.std.view.viewUpdated.on(payload => {
+          if (payload.type !== 'block') return;
           if (
-            payload.type === 'add' &&
+            payload.method === 'add' &&
             matchModels(payload.view.model, [RootBlockModel])
           ) {
             disposable.dispose();

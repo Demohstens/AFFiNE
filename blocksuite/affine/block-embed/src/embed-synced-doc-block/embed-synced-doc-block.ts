@@ -26,15 +26,15 @@ import {
 } from '@blocksuite/affine-shared/utils';
 import {
   BlockSelection,
-  BlockServiceWatcher,
   BlockStdScope,
   type EditorHost,
+  LifeCycleWatcher,
 } from '@blocksuite/block-std';
 import {
   GfxControllerIdentifier,
   GfxExtension,
 } from '@blocksuite/block-std/gfx';
-import { assertExists, Bound, getCommonBound } from '@blocksuite/global/utils';
+import { Bound, getCommonBound } from '@blocksuite/global/gfx';
 import { type GetBlocksOptions, type Query, Text } from '@blocksuite/store';
 import { computed, signal } from '@preact/signals-core';
 import { html, nothing, type PropertyValues } from 'lit';
@@ -124,27 +124,31 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
       this.std.getOptional(EditorSettingProvider) ??
       signal(GeneralSettingSchema.parse({}));
 
-    class EmbedSyncedDocWatcher extends BlockServiceWatcher {
-      static override readonly flavour = 'affine:embed-synced-doc';
+    class EmbedSyncedDocWatcher extends LifeCycleWatcher {
+      static override key = 'embed-synced-doc-watcher';
 
-      override mounted() {
-        const disposableGroup = this.blockService.disposables;
-        const slots = this.blockService.specSlots;
-        disposableGroup.add(
-          slots.viewConnected.on(({ component }) => {
-            const nextComponent = component as EmbedSyncedDocBlockComponent;
+      override mounted(): void {
+        const { view } = this.std;
+        view.viewUpdated.on(payload => {
+          if (
+            payload.type !== 'block' ||
+            payload.view.model.flavour !== 'affine:embed-synced-doc'
+          ) {
+            return;
+          }
+          const nextComponent = payload.view as EmbedSyncedDocBlockComponent;
+          if (payload.method === 'add') {
             nextComponent.depth = nextDepth;
             currentDisposables.add(() => {
               nextComponent.depth = 0;
             });
-          })
-        );
-        disposableGroup.add(
-          slots.viewDisconnected.on(({ component }) => {
-            const nextComponent = component as EmbedSyncedDocBlockComponent;
+            return;
+          }
+          if (payload.method === 'delete') {
             nextComponent.depth = 0;
-          })
-        );
+            return;
+          }
+        });
       }
     }
 
@@ -231,6 +235,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
             [theme]: true,
             surface: false,
             selected: this.selected$.value,
+            'show-hover-border': true,
           })}
           @click=${this._handleClick}
           style=${containerStyleMap}
@@ -278,24 +283,37 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
     const { doc, caption } = this.model;
 
     const parent = doc.getParent(this.model);
-    assertExists(parent);
+    if (!parent) {
+      console.error(
+        `Trying to convert synced doc to card, but the parent is not found.`
+      );
+      return;
+    }
     const index = parent.children.indexOf(this.model);
 
-    doc.addBlock(
+    const blockId = doc.addBlock(
       'affine:embed-linked-doc',
       { caption, ...this.referenceInfo, ...aliasInfo },
       parent,
       index
     );
 
-    this.std.selection.setGroup('note', []);
     doc.deleteBlock(this.model);
+
+    this.std.selection.setGroup('note', [
+      this.std.selection.create(BlockSelection, { blockId }),
+    ]);
   };
 
   covertToInline = () => {
     const { doc } = this.model;
     const parent = doc.getParent(this.model);
-    assertExists(parent);
+    if (!parent) {
+      console.error(
+        `Trying to convert synced doc to inline, but the parent is not found.`
+      );
+      return;
+    }
     const index = parent.children.indexOf(this.model);
 
     const yText = new Y.Text();
@@ -454,7 +472,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
   }
 
   private _selectBlock() {
-    const selectionManager = this.host.selection;
+    const selectionManager = this.std.selection;
     const blockSelection = selectionManager.create(BlockSelection, {
       blockId: this.blockId,
     });

@@ -10,12 +10,8 @@ import {
   RANGE_SYNC_EXCLUDE_ATTR,
   ShadowlessElement,
 } from '@blocksuite/block-std';
-import {
-  assertExists,
-  Bound,
-  Vec,
-  WithDisposable,
-} from '@blocksuite/global/utils';
+import { Bound, Vec } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
 import { css, html, nothing } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
@@ -98,12 +94,11 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
   };
 
   get inlineEditor() {
-    assertExists(this.richText.inlineEditor);
     return this.richText.inlineEditor;
   }
 
   get inlineEditorContainer() {
-    return this.inlineEditor.rootElement;
+    return this.inlineEditor?.rootElement;
   }
 
   override connectedCallback() {
@@ -120,7 +115,6 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
   override firstUpdated() {
     const { edgeless, connector } = this;
     const { dispatcher } = edgeless;
-    assertExists(dispatcher);
 
     this._resizeObserver = new ResizeObserver(() => {
       this._updateLabelRect();
@@ -130,6 +124,7 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
 
     this.updateComplete
       .then(() => {
+        if (!this.inlineEditor) return;
         this.inlineEditor.selectAll();
 
         this.inlineEditor.slots.renderComplete.on(() => {

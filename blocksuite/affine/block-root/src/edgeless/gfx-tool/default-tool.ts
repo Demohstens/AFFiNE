@@ -27,7 +27,6 @@ import {
   TelemetryProvider,
 } from '@blocksuite/affine-shared/services';
 import {
-  clamp,
   handleNativeRangeAtPoint,
   resetNativeSelection,
 } from '@blocksuite/affine-shared/utils';
@@ -42,23 +41,19 @@ import {
   isGfxGroupCompatibleModel,
   type PointTestOptions,
 } from '@blocksuite/block-std/gfx';
-import type { IVec } from '@blocksuite/global/utils';
-import {
-  Bound,
-  DisposableGroup,
-  getCommonBoundWithRotation,
-  last,
-  noop,
-  Vec,
-} from '@blocksuite/global/utils';
+import type { IVec } from '@blocksuite/global/gfx';
+import { Bound, getCommonBoundWithRotation, Vec } from '@blocksuite/global/gfx';
+import { DisposableGroup } from '@blocksuite/global/slot';
+import { noop } from '@blocksuite/global/utils';
 import { effect } from '@preact/signals-core';
+import clamp from 'lodash-es/clamp';
+import last from 'lodash-es/last';
 
 import type { EdgelessRootBlockComponent } from '../edgeless-root-block.js';
 import { prepareCloneData } from '../utils/clone-utils.js';
-import { isSingleMindMapNode } from '../utils/mindmap.js';
 import { calPanDelta } from '../utils/panning-utils.js';
 import { isCanvasElement, isEdgelessTextBlock } from '../utils/query.js';
-import type { EdgelessSnapManager } from '../utils/snap-manager.js';
+import type { SnapManager } from '../utils/snap-manager.js';
 import {
   addText,
   mountConnectorLabelEditor,
@@ -277,9 +272,7 @@ export class DefaultTool extends BaseTool {
   }
 
   get snapOverlay() {
-    return this.std.get(
-      OverlayIdentifier('snap-manager')
-    ) as EdgelessSnapManager;
+    return this.std.get(OverlayIdentifier('snap-manager')) as SnapManager;
   }
 
   private _addEmptyParagraphBlock(
@@ -569,22 +562,24 @@ export class DefaultTool extends BaseTool {
   ) {
     this.dragType = dragType;
 
-    if (
-      (this._toBeMoved.length &&
-        this._toBeMoved.every(
-          ele => !(ele.group instanceof MindmapElementModel)
-        )) ||
-      (isSingleMindMapNode(this._toBeMoved) &&
-        this._toBeMoved[0].id ===
-          (this._toBeMoved[0].group as MindmapElementModel).tree.id)
-    ) {
-      const mindmap = this._toBeMoved[0].group as MindmapElementModel;
+    const mindmaps: MindmapElementModel[] = this._toBeMoved.reduce(
+      (pre, elem) => {
+        if (
+          elem.group instanceof MindmapElementModel &&
+          !pre.includes(elem.group)
+        ) {
+          pre.push(elem.group);
+        }
 
-      this._alignBound = this.snapOverlay.setupAlignables(this._toBeMoved, [
-        mindmap,
-        ...(mindmap?.childElements || []),
-      ]);
-    }
+        return pre;
+      },
+      [] as MindmapElementModel[]
+    );
+
+    this._alignBound = this.snapOverlay.setMovingElements(this._toBeMoved, [
+      ...mindmaps,
+      ...mindmaps.flatMap(m => m.childElements),
+    ]);
 
     this._clearDisposable();
     this._disposables = new DisposableGroup();
@@ -640,7 +635,7 @@ export class DefaultTool extends BaseTool {
               );
             }
 
-            this._alignBound = this.snapOverlay.setupAlignables(
+            this._alignBound = this.snapOverlay.setMovingElements(
               this._toBeMoved
             );
 
@@ -882,7 +877,7 @@ export class DefaultTool extends BaseTool {
     if (this.edgelessSelectionManager.editing) return;
 
     this._selectedBounds = [];
-    this.snapOverlay.cleanupAlignables();
+    this.snapOverlay.clear();
     this.frameOverlay.clear();
     this._toBeMoved = [];
     this._selectedConnector = null;

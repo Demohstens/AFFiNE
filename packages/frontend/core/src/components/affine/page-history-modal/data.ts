@@ -2,7 +2,6 @@ import { useDocMetaHelper } from '@affine/core/components/hooks/use-block-suite-
 import { useDocCollectionPage } from '@affine/core/components/hooks/use-block-suite-workspace-page';
 import { FetchService, GraphQLService } from '@affine/core/modules/cloud';
 import {
-  getAFFiNEWorkspaceSchema,
   type WorkspaceFlavourProvider,
   WorkspaceService,
   WorkspacesService,
@@ -12,7 +11,6 @@ import { DebugLogger } from '@affine/debug';
 import type { ListHistoryQuery } from '@affine/graphql';
 import { listHistoryQuery, recoverDocMutation } from '@affine/graphql';
 import { i18nTime } from '@affine/i18n';
-import { assertEquals } from '@blocksuite/affine/global/utils';
 import type { Workspace } from '@blocksuite/affine/store';
 import { useService } from '@toeverything/infra';
 import { useEffect, useMemo } from 'react';
@@ -131,7 +129,6 @@ const getOrCreateShellWorkspace = (
           return Promise.resolve([]);
         },
       },
-      schema: getAFFiNEWorkspaceSchema(),
     });
     docCollectionMap.set(workspaceId, docCollection);
     docCollection.doc.emit('sync', [true, docCollection.doc]);
@@ -293,7 +290,9 @@ export const useRestorePage = (docCollection: Workspace, pageId: string) => {
       }
       const pageDocId = page.spaceDoc.guid;
       revertUpdate(page.spaceDoc, update, key => {
-        assertEquals(key, 'blocks'); // only expect this value is 'blocks'
+        if (key !== 'blocks') {
+          throw new Error('Only expect this value is "blocks"');
+        }
         return 'Map';
       });
 

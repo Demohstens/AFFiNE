@@ -8,7 +8,6 @@ import {
   CopilotClient,
   setupAIProvider,
 } from '@affine/core/blocksuite/ai';
-import { SyncAwareness } from '@affine/core/components/affine/awareness';
 import { useRegisterFindInPageCommands } from '@affine/core/components/hooks/affine/use-register-find-in-page-commands';
 import { useRegisterWorkspaceCommands } from '@affine/core/components/hooks/use-register-workspace-commands';
 import { OverCapacityNotification } from '@affine/core/components/over-capacity';
@@ -26,7 +25,10 @@ import { EditorSettingService } from '@affine/core/modules/editor-setting';
 import { useRegisterNavigationCommands } from '@affine/core/modules/navigation/view/use-register-navigation-commands';
 import { QuickSearchContainer } from '@affine/core/modules/quicksearch';
 import { WorkbenchService } from '@affine/core/modules/workbench';
-import { WorkspaceService } from '@affine/core/modules/workspace';
+import {
+  getAFFiNEWorkspaceSchema,
+  WorkspaceService,
+} from '@affine/core/modules/workspace';
 import { useI18n } from '@affine/i18n';
 import track from '@affine/track';
 import { type DocMode, ZipTransformer } from '@blocksuite/affine/blocks';
@@ -74,6 +76,7 @@ export const WorkspaceSideEffects = () => {
           throwIfAborted(abort);
           const [doc] = await ZipTransformer.importDocs(
             currentWorkspace.docCollection,
+            getAFFiNEWorkspaceSchema(),
             templateBlob
           );
           if (doc) {
@@ -172,7 +175,6 @@ export const WorkspaceSideEffects = () => {
   return (
     <>
       <QuickSearchContainer />
-      <SyncAwareness />
       <OverCapacityNotification />
     </>
   );

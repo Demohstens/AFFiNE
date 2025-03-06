@@ -4,14 +4,13 @@ import {
   type ExtensionType,
   type Store,
   StoreSelectionExtension,
-  Transformer,
-  type TransformerMiddleware,
 } from '@blocksuite/store';
 
 import { Clipboard } from '../clipboard/index.js';
 import { CommandManager } from '../command/index.js';
 import { UIEventDispatcher } from '../event/index.js';
 import { DndController } from '../extension/dnd/index.js';
+import { EditorLifeCycleExtension } from '../extension/editor-life-cycle.js';
 import { GfxController } from '../gfx/controller.js';
 import { GfxSelectionManager } from '../gfx/selection.js';
 import { SurfaceMiddlewareExtension } from '../gfx/surface-middleware.js';
@@ -43,6 +42,7 @@ const internalExtensions = [
   SurfaceMiddlewareExtension,
   ViewManager,
   DndController,
+  EditorLifeCycleExtension,
 ];
 
 export class BlockStdScope {
@@ -138,19 +138,6 @@ export class BlockStdScope {
 
   getView(flavour: string) {
     return this.getOptional(BlockViewIdentifier(flavour));
-  }
-
-  getTransformer(middlewares: TransformerMiddleware[] = []) {
-    return new Transformer({
-      schema: this.workspace.schema,
-      blobCRUD: this.workspace.blobSync,
-      docCRUD: {
-        create: (id: string) => this.workspace.createDoc({ id }),
-        get: (id: string) => this.workspace.getDoc(id),
-        delete: (id: string) => this.workspace.removeDoc(id),
-      },
-      middlewares,
-    });
   }
 
   mount() {

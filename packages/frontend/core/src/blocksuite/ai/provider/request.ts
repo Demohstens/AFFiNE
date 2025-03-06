@@ -1,4 +1,3 @@
-import { assertExists } from '@blocksuite/affine/global/utils';
 import { partition } from 'lodash-es';
 
 import { AIProvider } from './ai-provider';
@@ -71,8 +70,10 @@ async function createSessionMessage({
   sessionId: providedSessionId,
   attachments,
   params,
-  retry = false,
-}: TextToTextOptions) {
+}: TextToTextOptions): Promise<{
+  sessionId: string;
+  messageId: string;
+}> {
   if (!promptName && !providedSessionId) {
     throw new Error('promptName or sessionId is required');
   }
@@ -108,10 +109,6 @@ async function createSessionMessage({
       )
     ).filter(Boolean) as File[];
   }
-  if (retry)
-    return {
-      sessionId,
-    };
 
   const messageId = await client.createMessage(options);
   return {
@@ -146,7 +143,6 @@ export function textToText({
         if (retry) {
           const retrySessionId =
             (await sessionId) ?? AIProvider.LAST_ACTION_SESSIONID;
-          assertExists(retrySessionId, 'retry sessionId is required');
           _sessionId = retrySessionId;
           _messageId = undefined;
         } else {
@@ -159,7 +155,6 @@ export function textToText({
             attachments,
             params,
             sessionId,
-            retry,
           });
           _sessionId = message.sessionId;
           _messageId = message.messageId;
@@ -220,7 +215,6 @@ export function textToText({
         if (retry) {
           const retrySessionId =
             (await sessionId) ?? AIProvider.LAST_ACTION_SESSIONID;
-          assertExists(retrySessionId, 'retry sessionId is required');
           _sessionId = retrySessionId;
           _messageId = undefined;
         } else {
@@ -275,7 +269,6 @@ export function toImage({
       if (retry) {
         const retrySessionId =
           (await sessionId) ?? AIProvider.LAST_ACTION_SESSIONID;
-        assertExists(retrySessionId, 'retry sessionId is required');
         _sessionId = retrySessionId;
         _messageId = undefined;
       } else {

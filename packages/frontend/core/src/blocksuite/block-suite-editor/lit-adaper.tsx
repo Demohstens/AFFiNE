@@ -6,6 +6,7 @@ import {
   LitEdgelessEditor,
   type PageEditor,
 } from '@affine/core/blocksuite/editors';
+import { useEnableAI } from '@affine/core/components/hooks/affine/use-enable-ai';
 import type { DocCustomPropertyInfo } from '@affine/core/modules/db';
 import { DocService, DocsService } from '@affine/core/modules/doc';
 import type {
@@ -18,9 +19,14 @@ import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import { JournalService } from '@affine/core/modules/journal';
 import { toURLSearchParams } from '@affine/core/modules/navigation';
 import { PeekViewService } from '@affine/core/modules/peek-view/services/peek-view';
+import { MemberSearchService } from '@affine/core/modules/permissions';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import track from '@affine/track';
-import type { DocMode, DocTitle } from '@blocksuite/affine/blocks';
+import {
+  type DocMode,
+  type DocTitle,
+  ViewportTurboRendererExtension,
+} from '@blocksuite/affine/blocks';
 import type { Store } from '@blocksuite/affine/store';
 import {
   useFramework,
@@ -64,6 +70,7 @@ import {
   type ReferenceReactRenderer,
 } from '../extensions/reference-renderer';
 import { patchSideBarService } from '../extensions/side-bar-service';
+import { patchUserListExtensions } from '../extensions/user-list';
 import { BiDirectionalLinkPanel } from './bi-directional-link-panel';
 import { BlocksuiteEditorJournalDocTitle } from './journal-doc-title';
 import { StarterBar } from './starter-bar';
@@ -85,6 +92,7 @@ const usePatchSpecs = (mode: DocMode) => {
     editorService,
     workspaceService,
     featureFlagService,
+    memberSearchService,
   } = useServices({
     PeekViewService,
     DocService,
@@ -92,6 +100,7 @@ const usePatchSpecs = (mode: DocMode) => {
     WorkspaceService,
     EditorService,
     FeatureFlagService,
+    MemberSearchService,
   });
   const framework = useFramework();
   const referenceRenderer: ReferenceReactRenderer = useMemo(() => {
@@ -129,8 +138,14 @@ const usePatchSpecs = (mode: DocMode) => {
 
   const confirmModal = useConfirmModal();
 
+  const enableAI = useEnableAI();
+
+  const enableTurboRenderer = useLiveData(
+    featureFlagService.flags.enable_turbo_renderer.$
+  );
+
   const patchedSpecs = useMemo(() => {
-    const builder = enableEditorExtension(framework, mode);
+    const builder = enableEditorExtension(framework, mode, enableAI);
 
     builder.extend(
       [
@@ -140,10 +155,14 @@ const usePatchSpecs = (mode: DocMode) => {
         patchPeekViewService(peekViewService),
         patchOpenDocExtension(),
         EdgelessClipboardWatcher,
+        patchUserListExtensions(memberSearchService),
         patchDocUrlExtensions(framework),
         patchQuickSearchService(framework),
         patchSideBarService(framework),
         patchDocModeService(docService, docsService, editorService),
+        mode === 'edgeless' && enableTurboRenderer
+          ? [ViewportTurboRendererExtension]
+          : [],
       ].flat()
     );
 
@@ -151,7 +170,7 @@ const usePatchSpecs = (mode: DocMode) => {
       builder.extend([patchForAttachmentEmbedViews(reactToLit)]);
     }
     if (BUILD_CONFIG.isMobileEdition) {
-      enableMobileExtension(builder);
+      enableMobileExtension(builder, framework);
     }
     if (BUILD_CONFIG.isElectron) {
       builder.extend([patchForClipboardInElectron(framework)].flat());
@@ -159,16 +178,19 @@ const usePatchSpecs = (mode: DocMode) => {
 
     return builder.value;
   }, [
+    framework,
     mode,
+    enableAI,
+    reactToLit,
+    referenceRenderer,
     confirmModal,
+    peekViewService,
+    memberSearchService,
     docService,
     docsService,
     editorService,
-    framework,
-    peekViewService,
-    reactToLit,
-    referenceRenderer,
-    featureFlagService,
+    enableTurboRenderer,
+    featureFlagService.flags.enable_pdf_embed_preview.value,
   ]);
 
   return [
@@ -231,7 +253,7 @@ export const BlocksuiteDocEditor = forwardRef<
         if (typeof externalTitleRef === 'function') {
           externalTitleRef(el);
         } else {
-          (externalTitleRef as any).current = el;
+          externalTitleRef.current = el;
         }
       }
     },

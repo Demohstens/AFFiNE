@@ -10,8 +10,7 @@ import {
 import { EMBED_CARD_HEIGHT } from '@blocksuite/affine-shared/consts';
 import { NotificationProvider } from '@blocksuite/affine-shared/services';
 import { matchModels, SpecProvider } from '@blocksuite/affine-shared/utils';
-import { BlockStdScope } from '@blocksuite/block-std';
-import { assertExists } from '@blocksuite/global/utils';
+import { BlockStdScope, EditorLifeCycleExtension } from '@blocksuite/block-std';
 import {
   type BlockModel,
   type BlockSnapshot,
@@ -36,10 +35,12 @@ export function renderLinkedDocInCard(
   card: EmbedLinkedDocBlockComponent | EmbedSyncedDocCard
 ) {
   const linkedDoc = card.linkedDoc;
-  assertExists(
-    linkedDoc,
-    `Trying to load page ${card.model.pageId} in linked page block, but the page is not found.`
-  );
+  if (!linkedDoc) {
+    console.error(
+      `Trying to load page ${card.model.pageId} in linked page block, but the page is not found.`
+    );
+    return;
+  }
 
   // eslint-disable-next-line sonarjs/no-collapsible-if
   if ('bannerContainer' in card) {
@@ -59,10 +60,12 @@ export function renderLinkedDocInCard(
 
 async function renderPageAsBanner(card: EmbedSyncedDocCard) {
   const linkedDoc = card.linkedDoc;
-  assertExists(
-    linkedDoc,
-    `Trying to load page ${card.model.pageId} in linked page block, but the page is not found.`
-  );
+  if (!linkedDoc) {
+    console.error(
+      `Trying to load page ${card.model.pageId} in linked page block, but the page is not found.`
+    );
+    return;
+  }
 
   const notes = getNotesFromDoc(linkedDoc);
   if (!notes) {
@@ -126,10 +129,12 @@ async function renderNoteContent(
   card.isNoteContentEmpty = true;
 
   const doc = card.linkedDoc;
-  assertExists(
-    doc,
-    `Trying to load page ${card.model.pageId} in linked page block, but the page is not found.`
-  );
+  if (!doc) {
+    console.error(
+      `Trying to load page ${card.model.pageId} in linked page block, but the page is not found.`
+    );
+    return;
+  }
 
   const notes = getNotesFromDoc(doc);
   if (!notes) {
@@ -304,11 +309,12 @@ export function getDocContentWithMaxLength(doc: Store, maxlength = 500) {
 
 export function getTitleFromSelectedModels(selectedModels: DraftModel[]) {
   const firstBlock = selectedModels[0];
-  if (
-    matchModels(firstBlock, [ParagraphBlockModel]) &&
-    firstBlock.type.startsWith('h')
-  ) {
-    return firstBlock.text.toString();
+  const isParagraph = (
+    model: DraftModel
+  ): model is DraftModel<ParagraphBlockModel> =>
+    model.flavour === 'affine:paragraph';
+  if (isParagraph(firstBlock) && firstBlock.type.startsWith('h')) {
+    return firstBlock.text?.toString();
   }
   return undefined;
 }
@@ -345,7 +351,9 @@ export function notifyDocCreated(std: BlockStdScope, doc: Store) {
   // edit or undo or switch doc, close notify toast
   const addHandler = doc.history.on('stack-item-added', closeNotify);
   const popHandler = doc.history.on('stack-item-popped', closeNotify);
-  const disposable = std.host.slots.unmounted.on(closeNotify);
+  const disposable = std
+    .get(EditorLifeCycleExtension)
+    .slots.unmounted.on(closeNotify);
 
   notification.notify({
     title: 'Linked doc created',
@@ -394,7 +402,7 @@ export async function convertSelectedBlocksToLinkedDoc(
     'before'
   );
   // delete selected elements
-  models.forEach(model => doc.deleteBlock(model));
+  models.forEach(model => doc.deleteBlock(model.id));
   return linkedDoc;
 }
 

@@ -45,8 +45,11 @@ type Copilot {
   """Get the quota of the user in the workspace"""
   quota: CopilotQuota!
 
+  """Get the session id list in the workspace"""
+  sessionIds(docId: String, options: QueryChatSessionsInput): [String!]! @deprecated(reason: "Use `sessions` instead")
+
   """Get the session list in the workspace"""
-  sessionIds(docId: String, options: QueryChatSessionsInput): [String!]!
+  sessions(docId: String, options: QueryChatSessionsInput): [CopilotSessionType!]!
   workspaceId: ID
 }
 
@@ -192,6 +195,12 @@ type CopilotQuota {
   used: SafeInt!
 }
 
+type CopilotSessionType {
+  id: ID!
+  parentSessionId: ID
+  promptName: String!
+}
+
 input CreateChatMessageInput {
   attachments: [String!]
   blobs: [Upload!]
@@ -311,12 +320,17 @@ type DocType {
   workspaceId: String!
 }
 
+type DocUpdateBlockedDataType {
+  docId: String!
+  spaceId: String!
+}
+
 type EditorType {
   avatarUrl: String
   name: String!
 }
 
-union ErrorDataUnion = AlreadyInSpaceDataType | BlobNotFoundDataType | CopilotContextFileNotSupportedDataType | CopilotDocNotFoundDataType | CopilotFailedToMatchContextDataType | CopilotFailedToModifyContextDataType | CopilotInvalidContextDataType | CopilotMessageNotFoundDataType | CopilotPromptNotFoundDataType | CopilotProviderSideErrorDataType | DocActionDeniedDataType | DocHistoryNotFoundDataType | DocNotFoundDataType | ExpectToGrantDocUserRolesDataType | ExpectToRevokeDocUserRolesDataType | ExpectToUpdateDocUserRoleDataType | GraphqlBadRequestDataType | InvalidEmailDataType | InvalidHistoryTimestampDataType | InvalidLicenseUpdateParamsDataType | InvalidPasswordLengthDataType | InvalidRuntimeConfigTypeDataType | MemberNotFoundInSpaceDataType | MissingOauthQueryParameterDataType | NotInSpaceDataType | QueryTooLongDataType | RuntimeConfigNotFoundDataType | SameSubscriptionRecurringDataType | SpaceAccessDeniedDataType | SpaceNotFoundDataType | SpaceOwnerNotFoundDataType | SpaceShouldHaveOnlyOneOwnerDataType | SubscriptionAlreadyExistsDataType | SubscriptionNotExistsDataType | SubscriptionPlanNotFoundDataType | UnknownOauthProviderDataType | UnsupportedClientVersionDataType | UnsupportedSubscriptionPlanDataType | VersionRejectedDataType | WorkspaceMembersExceedLimitToDowngradeDataType | WorkspacePermissionNotFoundDataType | WrongSignInCredentialsDataType
+union ErrorDataUnion = AlreadyInSpaceDataType | BlobNotFoundDataType | CopilotContextFileNotSupportedDataType | CopilotDocNotFoundDataType | CopilotFailedToMatchContextDataType | CopilotFailedToModifyContextDataType | CopilotInvalidContextDataType | CopilotMessageNotFoundDataType | CopilotPromptNotFoundDataType | CopilotProviderSideErrorDataType | DocActionDeniedDataType | DocHistoryNotFoundDataType | DocNotFoundDataType | DocUpdateBlockedDataType | ExpectToGrantDocUserRolesDataType | ExpectToRevokeDocUserRolesDataType | ExpectToUpdateDocUserRoleDataType | GraphqlBadRequestDataType | InvalidEmailDataType | InvalidHistoryTimestampDataType | InvalidLicenseUpdateParamsDataType | InvalidOauthCallbackCodeDataType | InvalidPasswordLengthDataType | InvalidRuntimeConfigTypeDataType | MemberNotFoundInSpaceDataType | MentionUserDocAccessDeniedDataType | MissingOauthQueryParameterDataType | NotInSpaceDataType | QueryTooLongDataType | RuntimeConfigNotFoundDataType | SameSubscriptionRecurringDataType | SpaceAccessDeniedDataType | SpaceNotFoundDataType | SpaceOwnerNotFoundDataType | SpaceShouldHaveOnlyOneOwnerDataType | SubscriptionAlreadyExistsDataType | SubscriptionNotExistsDataType | SubscriptionPlanNotFoundDataType | UnknownOauthProviderDataType | UnsupportedClientVersionDataType | UnsupportedSubscriptionPlanDataType | ValidationErrorDataType | VersionRejectedDataType | WorkspaceMembersExceedLimitToDowngradeDataType | WorkspacePermissionNotFoundDataType | WrongSignInCredentialsDataType
 
 enum ErrorNames {
   ACCESS_DENIED
@@ -331,6 +345,7 @@ enum ErrorNames {
   CANNOT_DELETE_OWN_ACCOUNT
   CANT_UPDATE_ONETIME_PAYMENT_SUBSCRIPTION
   CAN_NOT_BATCH_GRANT_DOC_OWNER_PERMISSIONS
+  CAN_NOT_REVOKE_YOURSELF
   CAPTCHA_VERIFICATION_FAILED
   COPILOT_ACTION_TAKEN
   COPILOT_CONTEXT_FILE_NOT_SUPPORTED
@@ -353,6 +368,7 @@ enum ErrorNames {
   DOC_HISTORY_NOT_FOUND
   DOC_IS_NOT_PUBLIC
   DOC_NOT_FOUND
+  DOC_UPDATE_BLOCKED
   EARLY_ACCESS_REQUIRED
   EMAIL_ALREADY_USED
   EMAIL_TOKEN_NOT_FOUND
@@ -374,6 +390,7 @@ enum ErrorNames {
   INVALID_LICENSE_SESSION_ID
   INVALID_LICENSE_TO_ACTIVATE
   INVALID_LICENSE_UPDATE_PARAMS
+  INVALID_OAUTH_CALLBACK_CODE
   INVALID_OAUTH_CALLBACK_STATE
   INVALID_PASSWORD_LENGTH
   INVALID_RUNTIME_CONFIG_TYPE
@@ -384,12 +401,17 @@ enum ErrorNames {
   MAILER_SERVICE_IS_NOT_CONFIGURED
   MEMBER_NOT_FOUND_IN_SPACE
   MEMBER_QUOTA_EXCEEDED
+  MENTION_USER_DOC_ACCESS_DENIED
+  MENTION_USER_ONESELF_DENIED
   MISSING_OAUTH_QUERY_PARAMETER
+  NETWORK_ERROR
+  NOTIFICATION_NOT_FOUND
   NOT_FOUND
   NOT_IN_SPACE
   NO_COPILOT_PROVIDER_AVAILABLE
   OAUTH_ACCOUNT_ALREADY_CONNECTED
   OAUTH_STATE_EXPIRED
+  OWNER_CAN_NOT_LEAVE_WORKSPACE
   PASSWORD_REQUIRED
   QUERY_TOO_LONG
   RUNTIME_CONFIG_NOT_FOUND
@@ -413,6 +435,7 @@ enum ErrorNames {
   UNSUPPORTED_SUBSCRIPTION_PLAN
   USER_AVATAR_NOT_FOUND
   USER_NOT_FOUND
+  VALIDATION_ERROR
   VERSION_REJECTED
   WORKSPACE_ID_REQUIRED_FOR_TEAM_SUBSCRIPTION
   WORKSPACE_ID_REQUIRED_TO_UPDATE_TEAM_SUBSCRIPTION
@@ -470,7 +493,7 @@ input GrantDocUserRolesInput {
 
 type GrantedDocUserType {
   role: DocRole!
-  user: PublicUserType!
+  user: WorkspaceUserType!
 }
 
 type GrantedDocUserTypeEdge {
@@ -495,6 +518,11 @@ type InvalidLicenseUpdateParamsDataType {
   reason: String!
 }
 
+type InvalidOauthCallbackCodeDataType {
+  body: String!
+  status: Int!
+}
+
 type InvalidPasswordLengthDataType {
   max: Int!
   min: Int!
@@ -504,6 +532,42 @@ type InvalidRuntimeConfigTypeDataType {
   get: String!
   key: String!
   want: String!
+}
+
+type InvitationAcceptedNotificationBodyType {
+  """
+  The user who created the notification, maybe null when user is deleted or sent by system
+  """
+  createdByUser: PublicUserType
+  inviteId: String!
+
+  """The type of the notification"""
+  type: NotificationType!
+  workspace: NotificationWorkspaceType
+}
+
+type InvitationBlockedNotificationBodyType {
+  """
+  The user who created the notification, maybe null when user is deleted or sent by system
+  """
+  createdByUser: PublicUserType
+  inviteId: String!
+
+  """The type of the notification"""
+  type: NotificationType!
+  workspace: NotificationWorkspaceType
+}
+
+type InvitationNotificationBodyType {
+  """
+  The user who created the notification, maybe null when user is deleted or sent by system
+  """
+  createdByUser: PublicUserType
+  inviteId: ID!
+
+  """The type of the notification"""
+  type: NotificationType!
+  workspace: NotificationWorkspaceType
 }
 
 type InvitationType {
@@ -652,6 +716,45 @@ type MemberNotFoundInSpaceDataType {
   spaceId: String!
 }
 
+input MentionDocInput {
+  """The block id in the doc"""
+  blockId: String
+
+  """The element id in the doc"""
+  elementId: String
+  id: String!
+  title: String!
+}
+
+type MentionDocType {
+  blockId: String
+  elementId: String
+  id: String!
+  title: String!
+}
+
+input MentionInput {
+  doc: MentionDocInput!
+  userId: String!
+  workspaceId: String!
+}
+
+type MentionNotificationBodyType {
+  """
+  The user who created the notification, maybe null when user is deleted or sent by system
+  """
+  createdByUser: PublicUserType
+  doc: MentionDocType!
+
+  """The type of the notification"""
+  type: NotificationType!
+  workspace: NotificationWorkspaceType
+}
+
+type MentionUserDocAccessDeniedDataType {
+  docId: String!
+}
+
 type MissingOauthQueryParameterDataType {
   name: String!
 }
@@ -663,7 +766,7 @@ type Mutation {
   """add a doc to context"""
   addContextDoc(options: AddContextDocInput!): [CopilotContextListItem!]!
   addWorkspaceFeature(feature: FeatureType!, workspaceId: String!): Boolean!
-  approveMember(userId: String!, workspaceId: String!): String!
+  approveMember(userId: String!, workspaceId: String!): Boolean!
   cancelSubscription(idempotencyKey: String @deprecated(reason: "use header `Idempotency-Key`"), plan: SubscriptionPlan = Pro, workspaceId: String): SubscriptionType!
   changeEmail(email: String!, token: String!): UserType!
   changePassword(newPassword: String!, token: String!, userId: String): Boolean!
@@ -711,12 +814,18 @@ type Mutation {
   forkCopilotSession(options: ForkChatSessionInput!): String!
   generateLicenseKey(sessionId: String!): String!
   grantDocUserRoles(input: GrantDocUserRolesInput!): Boolean!
-  grantMember(permission: Permission!, userId: String!, workspaceId: String!): String!
+  grantMember(permission: Permission!, userId: String!, workspaceId: String!): Boolean!
   invite(email: String!, permission: Permission @deprecated(reason: "never used"), sendInviteMail: Boolean, workspaceId: String!): String!
   inviteBatch(emails: [String!]!, sendInviteMail: Boolean, workspaceId: String!): [InviteResult!]!
   leaveWorkspace(sendLeaveMail: Boolean, workspaceId: String!, workspaceName: String @deprecated(reason: "no longer used")): Boolean!
+
+  """mention user in a doc"""
+  mentionUser(input: MentionInput!): ID!
   publishDoc(docId: String!, mode: PublicDocMode = Page, workspaceId: String!): DocType!
   publishPage(mode: PublicDocMode = Page, pageId: String!, workspaceId: String!): DocType! @deprecated(reason: "use publishDoc instead")
+
+  """mark notification as read"""
+  readNotification(id: String!): Boolean!
   recoverDoc(guid: String!, timestamp: DateTime!, workspaceId: String!): DateTime!
   releaseDeletedBlobs(workspaceId: String!): Boolean!
 
@@ -773,6 +882,64 @@ type NotInSpaceDataType {
   spaceId: String!
 }
 
+"""Notification level"""
+enum NotificationLevel {
+  Default
+  High
+  Low
+  Min
+  None
+}
+
+type NotificationObjectType {
+  """Just a placeholder to export UnionNotificationBodyType, don't use it"""
+  _placeholderForUnionNotificationBodyType: UnionNotificationBodyType!
+
+  """
+  The body of the notification, different types have different fields, see UnionNotificationBodyType
+  """
+  body: JSONObject!
+
+  """The created at time of the notification"""
+  createdAt: DateTime!
+  id: ID!
+
+  """The level of the notification"""
+  level: NotificationLevel!
+
+  """Whether the notification has been read"""
+  read: Boolean!
+
+  """The type of the notification"""
+  type: NotificationType!
+
+  """The updated at time of the notification"""
+  updatedAt: DateTime!
+}
+
+type NotificationObjectTypeEdge {
+  cursor: String!
+  node: NotificationObjectType!
+}
+
+"""Notification type"""
+enum NotificationType {
+  Invitation
+  InvitationAccepted
+  InvitationBlocked
+  InvitationRejected
+  Mention
+}
+
+type NotificationWorkspaceType {
+  """Workspace avatar url"""
+  avatarUrl: String
+  id: ID!
+
+  """Workspace name"""
+  name: String!
+}
+
 enum OAuthProviderType {
   GitHub
   Google
@@ -788,6 +955,12 @@ type PageInfo {
 
 type PaginatedGrantedDocUserType {
   edges: [GrantedDocUserTypeEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PaginatedNotificationObjectType {
+  edges: [NotificationObjectTypeEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
@@ -824,7 +997,6 @@ enum PublicDocMode {
 
 type PublicUserType {
   avatarUrl: String
-  email: String!
   id: String!
   name: String!
 }
@@ -840,17 +1012,17 @@ type Query {
   getInviteInfo(inviteId: String!): InvitationType!
 
   """Get is admin of workspace"""
-  isAdmin(workspaceId: String!): Boolean!
+  isAdmin(workspaceId: String!): Boolean! @deprecated(reason: "use WorkspaceType[role] instead")
 
   """Get is owner of workspace"""
-  isOwner(workspaceId: String!): Boolean!
-
-  """List blobs of workspace"""
-  listBlobs(workspaceId: String!): [String!]! @deprecated(reason: "use `workspace.blobs` instead")
+  isOwner(workspaceId: String!): Boolean! @deprecated(reason: "use WorkspaceType[role] instead")
 
   """List all copilot prompts"""
   listCopilotPrompts: [CopilotPromptType!]!
   prices: [SubscriptionPrice!]!
+
+  """Get public user by id"""
+  publicUserById(id: String!): PublicUserType
 
   """server config"""
   serverConfig: ServerConfigType!
@@ -878,7 +1050,7 @@ type Query {
   workspace(id: String!): WorkspaceType!
 
   """Get workspace role permissions"""
-  workspaceRolePermissions(id: String!): WorkspaceRolePermissions!
+  workspaceRolePermissions(id: String!): WorkspaceRolePermissions! @deprecated(reason: "use WorkspaceType[permissions] instead")
 
   """Get all accessible workspaces for current user"""
   workspaces: [WorkspaceType!]!
@@ -1098,6 +1270,8 @@ enum SubscriptionVariant {
   Onetime
 }
 
+union UnionNotificationBodyType = InvitationAcceptedNotificationBodyType | InvitationBlockedNotificationBodyType | InvitationNotificationBodyType | MentionNotificationBodyType
+
 type UnknownOauthProviderDataType {
   name: String!
 }
@@ -1204,10 +1378,20 @@ type UserType {
 
   """User name"""
   name: String!
+
+  """Get user notification count"""
+  notificationCount: Int!
+
+  """Get current user notifications"""
+  notifications(pagination: PaginationInput!): PaginatedNotificationObjectType!
   quota: UserQuotaType!
   quotaUsage: UserQuotaUsageType!
   subscriptions: [SubscriptionType!]!
   token: tokenType! @deprecated(reason: "use [/api/auth/sign-in?native=true] instead")
+}
+
+type ValidationErrorDataType {
+  errors: String!
 }
 
 type VersionRejectedDataType {
@@ -1252,13 +1436,20 @@ type WorkspacePermissionNotFoundDataType {
 }
 
 type WorkspacePermissions {
+  Workspace_Adminitrators_Manage: Boolean!
+  Workspace_Blobs_List: Boolean!
+  Workspace_Blobs_Read: Boolean!
+  Workspace_Blobs_Write: Boolean!
+  Workspace_Copilot: Boolean!
   Workspace_CreateDoc: Boolean!
   Workspace_Delete: Boolean!
   Workspace_Organize_Read: Boolean!
+  Workspace_Payment_Manage: Boolean!
   Workspace_Properties_Create: Boolean!
   Workspace_Properties_Delete: Boolean!
   Workspace_Properties_Read: Boolean!
   Workspace_Properties_Update: Boolean!
+  Workspace_Read: Boolean!
   Workspace_Settings_Read: Boolean!
   Workspace_Settings_Update: Boolean!
   Workspace_Sync: Boolean!
@@ -1340,6 +1531,9 @@ type WorkspaceType {
   """Cloud page metadata of workspace"""
   pageMeta(pageId: String!): WorkspacePageMeta!
 
+  """map of action permissions"""
+  permissions: WorkspacePermissions!
+
   """is Public workspace"""
   public: Boolean!
 
@@ -1361,6 +1555,13 @@ type WorkspaceType {
 
   """if workspace is team workspace"""
   team: Boolean!
+}
+
+type WorkspaceUserType {
+  avatarUrl: String
+  email: String!
+  id: String!
+  name: String!
 }
 
 type WrongSignInCredentialsDataType {

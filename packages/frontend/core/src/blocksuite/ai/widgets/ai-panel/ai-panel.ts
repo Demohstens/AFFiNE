@@ -4,7 +4,6 @@ import {
 } from '@blocksuite/affine/block-std';
 import { GfxControllerIdentifier } from '@blocksuite/affine/block-std/gfx';
 import {
-  AFFINE_FORMAT_BAR_WIDGET,
   AFFINE_VIEWPORT_OVERLAY_WIDGET,
   type AffineViewportOverlayWidget,
   DocModeProvider,
@@ -12,8 +11,9 @@ import {
   NotificationProvider,
   stopPropagation,
   ThemeProvider,
+  ToolbarFlag,
+  ToolbarRegistryIdentifier,
 } from '@blocksuite/affine/blocks';
-import { assertExists } from '@blocksuite/affine/global/utils';
 import type { BaseSelection } from '@blocksuite/affine/store';
 import {
   autoPlacement,
@@ -176,10 +176,16 @@ export class AffineAIPanelWidget extends WidgetComponent {
   generate = () => {
     this.restoreSelection();
 
-    assertExists(this.config);
     const text = this._inputText;
-    assertExists(text);
-    assertExists(this.config.generateAnswer);
+    if (!this.config) {
+      throw new Error('config is not found');
+    }
+    if (text === null || text === undefined) {
+      throw new Error('text is not found');
+    }
+    if (!this.config.generateAnswer) {
+      throw new Error('generateAnswer is not found');
+    }
 
     this._resetAbortController();
 
@@ -193,7 +199,9 @@ export class AffineAIPanelWidget extends WidgetComponent {
     const finish = (type: 'success' | 'error' | 'aborted', err?: AIError) => {
       if (type === 'aborted') return;
 
-      assertExists(this.config);
+      if (!this.config) {
+        throw new Error('config is not found when finish');
+      }
       if (type === 'error') {
         this.state = 'error';
         this.config.errorStateConfig.error = err;
@@ -512,27 +520,24 @@ export class AffineAIPanelWidget extends WidgetComponent {
   protected override willUpdate(changed: PropertyValues): void {
     const prevState = changed.get('state');
     if (prevState) {
-      if (prevState === 'hidden') {
+      const shouldBeHidden = prevState === 'hidden';
+
+      if (shouldBeHidden) {
         this._selection = this.host.selection.value;
       } else {
         this.restoreSelection();
       }
 
-      // tell format bar to show or hide
-      const rootBlockId = this.host.doc.root?.id;
-      const formatBar = rootBlockId
-        ? this.host.view.getWidget(AFFINE_FORMAT_BAR_WIDGET, rootBlockId)
-        : null;
-
-      if (formatBar) {
-        formatBar.requestUpdate();
-      }
+      // tell toolbar to show or hide
+      this.std
+        .get(ToolbarRegistryIdentifier)
+        .flags.toggle(ToolbarFlag.Hiding, shouldBeHidden);
     }
 
-    if (this.state !== 'hidden') {
-      this.viewportOverlayWidget?.lock();
-    } else {
+    if (this.state === 'hidden') {
       this.viewportOverlayWidget?.unlock();
+    } else {
+      this.viewportOverlayWidget?.lock();
     }
 
     this.dataset.state = this.state;

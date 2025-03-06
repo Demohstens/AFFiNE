@@ -31,6 +31,9 @@
     "./global/exceptions": "./src/global/exceptions.ts",
     "./global/di": "./src/global/di.ts",
     "./global/types": "./src/global/types.ts",
+    "./global/gfx": "./src/global/gfx.ts",
+    "./global/slot": "./src/global/slot.ts",
+    "./global/lit": "./src/global/lit.ts",
     "./store": "./src/store/index.ts",
     "./store/test": "./src/store/test.ts",
     "./inline": "./src/inline/index.ts",
@@ -68,6 +71,9 @@
       ],
       "global/types": [
         "dist/global/types.d.ts"
+      ],
+      "global/gfx": [
+        "dist/global/gfx.d.ts"
       ],
       "store": [
         "dist/store/index.d.ts"

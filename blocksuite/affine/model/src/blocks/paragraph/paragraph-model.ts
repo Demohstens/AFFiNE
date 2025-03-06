@@ -1,4 +1,9 @@
-import { BlockModel, defineBlockSchema, type Text } from '@blocksuite/store';
+import {
+  BlockModel,
+  BlockSchemaExtension,
+  defineBlockSchema,
+  type Text,
+} from '@blocksuite/store';
 
 export type ParagraphType =
   | 'text'
@@ -32,10 +37,14 @@ export const ParagraphBlockSchema = defineBlockSchema({
       'affine:paragraph',
       'affine:list',
       'affine:edgeless-text',
+      'affine:callout',
     ],
   },
   toModel: () => new ParagraphBlockModel(),
 });
+
+export const ParagraphBlockSchemaExtension =
+  BlockSchemaExtension(ParagraphBlockSchema);
 
 export class ParagraphBlockModel extends BlockModel<ParagraphProps> {
   override text!: Text;

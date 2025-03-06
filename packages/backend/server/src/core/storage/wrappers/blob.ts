@@ -11,7 +11,21 @@ import {
   PutObjectMetadata,
   type StorageProvider,
   StorageProviderFactory,
+  URLHelper,
 } from '../../../base';
+
+declare global {
+  interface Events {
+    'workspace.blob.sync': {
+      workspaceId: string;
+      key: string;
+    };
+    'workspace.blob.delete': {
+      workspaceId: string;
+      key: string;
+    };
+  }
+}
 
 @Injectable()
 export class WorkspaceBlobStorage {
@@ -22,7 +36,8 @@ export class WorkspaceBlobStorage {
     private readonly config: Config,
     private readonly event: EventBus,
     private readonly storageFactory: StorageProviderFactory,
-    private readonly db: PrismaClient
+    private readonly db: PrismaClient,
+    private readonly url: URLHelper
   ) {
     this.provider = this.storageFactory.create(this.config.storages.blob);
   }
@@ -125,6 +140,10 @@ export class WorkspaceBlobStorage {
     });
 
     return sum._sum.size ?? 0;
+  }
+
+  getAvatarUrl(workspaceId: string, avatarKey: string) {
+    return this.url.link(`/api/workspaces/${workspaceId}/blobs/${avatarKey}`);
   }
 
   private trySyncBlobsMeta(workspaceId: string, blobs: ListObjectsMetadata[]) {

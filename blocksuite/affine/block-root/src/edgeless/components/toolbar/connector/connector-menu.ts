@@ -6,7 +6,7 @@ import {
 } from '@blocksuite/affine-shared/services';
 import type { ColorEvent } from '@blocksuite/affine-shared/utils';
 import type { GfxToolsFullOptionValue } from '@blocksuite/block-std/gfx';
-import { SignalWatcher } from '@blocksuite/global/utils';
+import { SignalWatcher } from '@blocksuite/global/lit';
 import {
   ConnectorCIcon,
   ConnectorEIcon,
@@ -133,7 +133,7 @@ export class EdgelessConnectorMenu extends EdgelessToolbarToolMixin(
             class="one-way"
             .value=${stroke}
             .theme=${this._theme$.value}
-            .palettes=${DefaultTheme.StrokeColorPalettes}
+            .palettes=${DefaultTheme.StrokeColorShortPalettes}
             .hasTransparent=${!this.edgeless.doc
               .get(FeatureFlagService)
               .getFlag('enable_color_picker')}

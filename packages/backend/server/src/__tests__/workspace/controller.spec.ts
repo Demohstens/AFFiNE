@@ -7,6 +7,7 @@ import Sinon from 'sinon';
 
 import { PgWorkspaceDocStorageAdapter } from '../../core/doc';
 import { WorkspaceBlobStorage } from '../../core/storage';
+import { Models, PublicDocMode, WorkspaceRole } from '../../models';
 import { createTestingApp, TestingApp, TestUser } from '../utils';
 
 const test = ava as TestFn<{
@@ -15,6 +16,7 @@ const test = ava as TestFn<{
   u1: TestUser;
   storage: Sinon.SinonStubbedInstance<WorkspaceBlobStorage>;
   workspace: Sinon.SinonStubbedInstance<PgWorkspaceDocStorageAdapter>;
+  models: Models;
 }>;
 
 test.before(async t => {
@@ -34,6 +36,7 @@ test.before(async t => {
   t.context.app = app;
   t.context.storage = app.get(WorkspaceBlobStorage);
   t.context.workspace = app.get(PgWorkspaceDocStorageAdapter);
+  t.context.models = app.get(Models);
 
   await db.workspaceDoc.create({
     data: {
@@ -155,17 +158,14 @@ test('should not be able to get private workspace with no public pages', async t
 });
 
 test('should be able to get permission granted workspace', async t => {
-  const { app, db, storage } = t.context;
+  const { app, storage } = t.context;
 
-  await db.workspaceUserPermission.create({
-    data: {
-      workspaceId: 'totally-private',
-      userId: t.context.u1.id,
-      type: 1,
-      accepted: true,
-      status: WorkspaceMemberStatus.Accepted,
-    },
-  });
+  await t.context.models.workspaceUser.set(
+    'totally-private',
+    t.context.u1.id,
+    WorkspaceRole.Collaborator,
+    WorkspaceMemberStatus.Accepted
+  );
 
   storage.get.resolves(blob());
   await app.login(t.context.u1);
@@ -218,7 +218,7 @@ test('should be able to get doc', async t => {
 });
 
 test('should be able to change page publish mode', async t => {
-  const { app, workspace: doc, db } = t.context;
+  const { app, workspace: doc, models } = t.context;
 
   doc.getDoc.resolves({
     spaceId: '',
@@ -232,9 +232,8 @@ test('should be able to change page publish mode', async t => {
   t.is(res.status, HttpStatus.OK);
   t.is(res.get('publish-mode'), 'page');
 
-  await db.workspaceDoc.update({
-    where: { workspaceId_docId: { workspaceId: 'private', docId: 'public' } },
-    data: { mode: 1 },
+  await models.doc.upsertMeta('private', 'public', {
+    mode: PublicDocMode.Edgeless,
   });
 
   res = await app.GET('/api/workspaces/private/docs/public');

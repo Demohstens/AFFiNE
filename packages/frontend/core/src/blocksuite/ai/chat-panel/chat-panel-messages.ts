@@ -6,19 +6,22 @@ import {
   isInsidePageEditor,
   type SpecBuilder,
 } from '@blocksuite/affine/blocks';
-import { WithDisposable } from '@blocksuite/affine/global/utils';
+import { WithDisposable } from '@blocksuite/affine/global/lit';
 import type { BaseSelection } from '@blocksuite/affine/store';
-import { css, html, nothing } from 'lit';
+import {
+  AiIcon,
+  ArrowDownBigIcon as ArrowDownIcon,
+} from '@blocksuite/icons/lit';
+import { css, html, nothing, type PropertyValues } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
-import { styleMap } from 'lit/directives/style-map.js';
 import { debounce } from 'lodash-es';
 
 import {
   EdgelessEditorActions,
   PageEditorActions,
 } from '../_common/chat-actions-handle';
-import { AffineAvatarIcon, AffineIcon, DownArrowIcon } from '../_common/icons';
+import { AffineIcon } from '../_common/icons';
 import {
   type AIError,
   PaymentRequiredError,
@@ -35,6 +38,12 @@ import {
 import { HISTORY_IMAGE_ACTIONS } from './const';
 import { AIPreloadConfig } from './preload-config';
 
+const AffineAvatarIcon = AiIcon({
+  width: '20px',
+  height: '20px',
+  style: 'color: var(--affine-primary-color)',
+});
+
 export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
   static override styles = css`
     chat-panel-messages {
@@ -50,7 +59,7 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
       overflow-y: auto;
     }
 
-    .chat-panel-messages-placeholder {
+    .messages-placeholder {
       width: 100%;
       position: absolute;
       z-index: 1;
@@ -63,6 +72,48 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
       gap: 12px;
     }
 
+    .messages-placeholder-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--affine-text-primary-color);
+    }
+
+    .messages-placeholder-title[data-loading='true'] {
+      font-size: var(--affine-font-sm);
+      color: var(--affine-text-secondary-color);
+    }
+
+    .onboarding-wrapper {
+      display: flex;
+      gap: 8px;
+      flex-direction: column;
+      margin-top: 16px;
+    }
+
+    .onboarding-item {
+      display: flex;
+      height: 28px;
+      gap: 8px;
+      align-items: center;
+      justify-content: start;
+      cursor: pointer;
+    }
+
+    .onboarding-item-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--affine-text-secondary-color);
+    }
+
+    .onboarding-item-text {
+      font-size: var(--affine-font-xs);
+      font-weight: 400;
+      color: var(--affine-text-primary-color);
+      white-space: nowrap;
+    }
+
     .item-wrapper {
       margin-left: 32px;
     }
@@ -73,14 +124,14 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
       gap: 10px;
       margin-bottom: 4px;
       color: var(--affine-text-primary-color);
-      font-size: 14px;
+      font-size: var(--affine-font-sm);
       font-weight: 500;
       user-select: none;
     }
 
     .message-info {
       color: var(--affine-placeholder-color);
-      font-size: 12px;
+      font-size: var(--affine-font-xs);
       font-weight: 400;
     }
 
@@ -126,7 +177,7 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
   accessor _selectionValue: BaseSelection[] = [];
 
   @state()
-  accessor showDownIndicator = false;
+  accessor canScrollDown = false;
 
   @state()
   accessor avatarUrl = '';
@@ -152,46 +203,25 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
   @query('.chat-panel-messages')
   accessor messagesContainer: HTMLDivElement | null = null;
 
+  getScrollContainer(): HTMLDivElement | null {
+    return this.messagesContainer;
+  }
+
   private _renderAIOnboarding() {
     return this.isLoading ||
       !this.host?.doc.get(FeatureFlagService).getFlag('enable_ai_onboarding')
       ? nothing
-      : html`<div
-          style=${styleMap({
-            display: 'flex',
-            gap: '8px',
-            flexDirection: 'column',
-            alignItems: 'center',
-            marginTop: '16px',
-            width: '100%',
-          })}
-        >
+      : html`<div class="onboarding-wrapper">
           ${repeat(
             AIPreloadConfig,
             config => config.text,
             config => {
               return html`<div
                 @click=${() => config.handler()}
-                style=${styleMap({
-                  display: 'flex',
-                  height: '28px',
-                  gap: '8px',
-                  width: '88%',
-                  alignItems: 'center',
-                  justifyContent: 'start',
-                  cursor: 'pointer',
-                })}
+                class="onboarding-item"
               >
-                ${config.icon}
-                <div
-                  style=${styleMap({
-                    fontSize: '12px',
-                    fontWeight: '400',
-                    color: 'var(--affine-text-primary-color)',
-                  })}
-                >
-                  ${config.text}
-                </div>
+                <div class="onboarding-item-icon">${config.icon}</div>
+                <div class="onboarding-item-text">${config.text}</div>
               </div>`;
             }
           )}
@@ -201,13 +231,18 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
   private readonly _onScroll = () => {
     if (!this.messagesContainer) return;
     const { clientHeight, scrollTop, scrollHeight } = this.messagesContainer;
-    this.showDownIndicator = scrollHeight - scrollTop - clientHeight > 200;
+    this.canScrollDown = scrollHeight - scrollTop - clientHeight > 200;
   };
 
   private readonly _debouncedOnScroll = debounce(
     this._onScroll.bind(this),
     100
   );
+
+  private readonly _onDownIndicatorClick = () => {
+    this.canScrollDown = false;
+    this.scrollToEnd();
+  };
 
   protected override render() {
     const { items } = this.chatContextValue;
@@ -221,28 +256,24 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
       );
     });
 
-    return html`<style>
-        .chat-panel-messages-placeholder div {
-          color: ${isLoading
-            ? 'var(--affine-text-secondary-color)'
-            : 'var(--affine-text-primary-color)'};
-          font-size: ${isLoading ? 'var(--affine-font-sm)' : '18px'};
-          font-weight: 600;
-        }
-      </style>
+    const showDownIndicator =
+      this.canScrollDown &&
+      filteredItems.length > 0 &&
+      this.chatContextValue.status !== 'transmitting';
 
+    return html`
       <div
         class="chat-panel-messages"
         @scroll=${() => this._debouncedOnScroll()}
       >
-        ${items.length === 0
-          ? html`<div class="chat-panel-messages-placeholder">
+        ${filteredItems.length === 0
+          ? html`<div class="messages-placeholder">
               ${AffineIcon(
                 isLoading
                   ? 'var(--affine-icon-secondary)'
                   : 'var(--affine-primary-color)'
               )}
-              <div>
+              <div class="messages-placeholder-title" data-loading=${isLoading}>
                 ${this.isLoading
                   ? 'AFFiNE AI is loading history...'
                   : 'What can I help you with?'}
@@ -251,7 +282,7 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
             </div> `
           : repeat(
               filteredItems,
-              item => (isChatMessage(item) ? item.id : item.sessionId),
+              (_, index) => index,
               (item, index) => {
                 const isLast = index === filteredItems.length - 1;
                 return html`<div class="message">
@@ -263,11 +294,12 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
               }
             )}
       </div>
-      ${this.showDownIndicator && filteredItems.length > 1
-        ? html`<div class="down-indicator" @click=${this.scrollToEnd}>
-            ${DownArrowIcon}
+      ${showDownIndicator && filteredItems.length > 0
+        ? html`<div class="down-indicator" @click=${this._onDownIndicatorClick}>
+            ${ArrowDownIcon()}
           </div>`
-        : nothing} `;
+        : nothing}
+    `;
   }
 
   override connectedCallback() {
@@ -305,6 +337,12 @@ export class ChatPanelMessages extends WithDisposable(ShadowlessElement) {
         this.host.doc.id
       )
     );
+  }
+
+  protected override updated(_changedProperties: PropertyValues) {
+    if (_changedProperties.has('isLoading')) {
+      this.canScrollDown = false;
+    }
   }
 
   renderItem(item: ChatItem, isLast: boolean) {

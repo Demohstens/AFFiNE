@@ -18,8 +18,9 @@ import {
   type GfxModel,
   type SerializedElement,
 } from '@blocksuite/block-std/gfx';
-import { getCommonBoundWithRotation, groupBy } from '@blocksuite/global/utils';
+import { getCommonBoundWithRotation } from '@blocksuite/global/gfx';
 import { type BlockSnapshot, BlockSnapshotSchema } from '@blocksuite/store';
+import groupBy from 'lodash-es/groupBy';
 
 import type { EdgelessRootBlockComponent } from '../edgeless-root-block.js';
 import { getSortedCloneElements, prepareCloneData } from './clone-utils.js';

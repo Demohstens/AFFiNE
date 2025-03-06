@@ -1,23 +1,20 @@
 import type { FrameBlockModel } from '@blocksuite/affine-model';
 import { SpecProvider } from '@blocksuite/affine-shared/utils';
 import {
-  BlockServiceWatcher,
   BlockStdScope,
   type EditorHost,
+  LifeCycleWatcher,
   ShadowlessElement,
 } from '@blocksuite/block-std';
 import { GfxControllerIdentifier } from '@blocksuite/block-std/gfx';
-import {
-  Bound,
-  debounce,
-  deserializeXYWH,
-  DisposableGroup,
-  WithDisposable,
-} from '@blocksuite/global/utils';
+import { Bound, deserializeXYWH } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
+import { DisposableGroup } from '@blocksuite/global/slot';
 import { type Query, type Store } from '@blocksuite/store';
 import { css, html, nothing, type PropertyValues } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
+import debounce from 'lodash-es/debounce';
 
 import type { EdgelessRootPreviewBlockComponent } from '../../edgeless-root-preview-block.js';
 
@@ -117,22 +114,26 @@ export class FramePreview extends WithDisposable(ShadowlessElement) {
 
   private _initSpec() {
     const refreshViewport = this._refreshViewport.bind(this);
-    class FramePreviewWatcher extends BlockServiceWatcher {
-      static override readonly flavour = 'affine:page';
+    class FramePreviewWatcher extends LifeCycleWatcher {
+      static override key = 'frame-preview-watcher';
 
       override mounted() {
-        const blockService = this.blockService;
-        blockService.disposables.add(
-          blockService.specSlots.viewConnected.on(({ component }) => {
-            const edgelessBlock =
-              component as EdgelessRootPreviewBlockComponent;
-
-            edgelessBlock.editorViewportSelector = 'frame-preview-viewport';
-            edgelessBlock.service.viewport.sizeUpdated.once(() => {
-              refreshViewport();
-            });
-          })
-        );
+        const { view } = this.std;
+        view.viewUpdated.on(payload => {
+          if (
+            payload.type !== 'block' ||
+            payload.method !== 'add' ||
+            payload.view.model.flavour !== 'affine:page'
+          ) {
+            return;
+          }
+          const edgelessBlock =
+            payload.view as EdgelessRootPreviewBlockComponent;
+          edgelessBlock.editorViewportSelector = 'frame-preview-viewport';
+          edgelessBlock.service.viewport.sizeUpdated.once(() => {
+            refreshViewport();
+          });
+        });
       }
     }
     this._previewSpec.extend([FramePreviewWatcher]);
@@ -179,7 +180,9 @@ export class FramePreview extends WithDisposable(ShadowlessElement) {
     this._clearFrameDisposables();
     this._frameDisposables = new DisposableGroup();
     this._frameDisposables.add(
-      frame.propsUpdated.on(debounce(this._updateFrameViewportWH, 10))
+      frame.propsUpdated.on(
+        debounce(this._updateFrameViewportWH, 10, { leading: true })
+      )
     );
   }
 

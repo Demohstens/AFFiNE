@@ -1,7 +1,7 @@
 import { SpecProvider } from '@blocksuite/affine/blocks';
-import { Slot } from '@blocksuite/affine/global/utils';
+import { Slot } from '@blocksuite/affine/global/slot';
 import {
-  type AwarenessStore,
+  AwarenessStore,
   type Doc,
   type GetBlocksOptions,
   type Query,
@@ -10,13 +10,13 @@ import {
   type YBlock,
 } from '@blocksuite/affine/store';
 import { signal } from '@preact/signals-core';
+import { Awareness } from 'y-protocols/awareness.js';
 import * as Y from 'yjs';
 
 type DocOptions = {
   id: string;
   collection: Workspace;
   doc: Y.Doc;
-  awarenessStore: AwarenessStore;
 };
 
 export class DocImpl implements Doc {
@@ -147,10 +147,6 @@ export class DocImpl implements Doc {
     return this._ready;
   }
 
-  get schema() {
-    return this.workspace.schema;
-  }
-
   get spaceDoc() {
     return this._ySpaceDoc;
   }
@@ -159,12 +155,11 @@ export class DocImpl implements Doc {
     return this._yBlocks;
   }
 
-  constructor({ id, collection, doc, awarenessStore }: DocOptions) {
+  constructor({ id, collection, doc }: DocOptions) {
     this.id = id;
     this.rootDoc = doc;
-    this.awarenessStore = awarenessStore;
-
     this._ySpaceDoc = this._initSubDoc() as Y.Doc;
+    this.awarenessStore = new AwarenessStore(new Awareness(this._ySpaceDoc));
 
     this._yBlocks = this._ySpaceDoc.getMap('blocks');
     this._collection = collection;
@@ -172,13 +167,6 @@ export class DocImpl implements Doc {
 
   private _getReadonlyKey(readonly?: boolean): 'true' | 'false' {
     return (readonly?.toString() as 'true' | 'false') ?? 'false';
-  }
-
-  private _handleVersion() {
-    // Initialization from empty yDoc, indicating that the document is new.
-    if (!this.workspace.meta.hasVersion) {
-      this.workspace.meta.writeVersion(this.workspace);
-    }
   }
 
   private _handleYBlockAdd(id: string) {
@@ -239,12 +227,14 @@ export class DocImpl implements Doc {
   }
 
   private _destroy() {
+    this.awarenessStore.destroy();
     this._ySpaceDoc.destroy();
     this._onLoadSlot.dispose();
     this._loaded = false;
   }
 
   dispose() {
+    this._destroy();
     this.slots.historyUpdated.dispose();
 
     if (this.ready) {
@@ -296,7 +286,6 @@ export class DocImpl implements Doc {
 
     const doc = new Store({
       doc: this,
-      schema: this.workspace.schema,
       readonly,
       query,
       provider,
@@ -315,10 +304,7 @@ export class DocImpl implements Doc {
 
     this.spaceDoc.load();
     this.workspace.onLoadDoc?.(this.spaceDoc);
-
-    if ((this.workspace.meta.docs?.length ?? 0) <= 1) {
-      this._handleVersion();
-    }
+    this.workspace.onLoadAwareness?.(this.awarenessStore.awareness);
 
     this._initYBlocks();
 

@@ -1,3 +1,4 @@
+import type { SlashMenuActionItem } from '@blocksuite/blocks';
 import { expect } from '@playwright/test';
 
 import { addNote, switchEditorMode } from './utils/actions/edgeless.js';
@@ -32,7 +33,6 @@ import {
 import {
   assertAlmostEqual,
   assertBlockCount,
-  assertExists,
   assertRichTexts,
 } from './utils/asserts.js';
 import { test } from './utils/playwright.js';
@@ -344,7 +344,9 @@ test.describe('slash menu should show and hide correctly', () => {
     const subMenu = page.locator('.slash-menu[data-testid=sub-menu-1]');
 
     let rect = await slashItems.nth(4).boundingBox();
-    assertExists(rect);
+    if (!rect) {
+      throw new Error('rect is not found');
+    }
     await page.mouse.move(rect.x + 10, rect.y + 10);
     await expect(slashMenu).toBeVisible();
     await expect(slashItems.nth(4)).toHaveAttribute('hover', 'true');
@@ -354,7 +356,9 @@ test.describe('slash menu should show and hide correctly', () => {
     await expect(subMenu).toBeVisible();
 
     rect = await slashItems.nth(3).boundingBox();
-    assertExists(rect);
+    if (!rect) {
+      throw new Error('rect is not found');
+    }
     await page.mouse.move(rect.x + 10, rect.y + 10);
     await expect(slashMenu).toBeVisible();
     await expect(slashItems.nth(3)).toHaveAttribute('hover', 'true');
@@ -384,6 +388,7 @@ test.describe('slash menu should show and hide correctly', () => {
     const slashItems = slashMenu.locator('icon-button');
 
     await type(page, '/');
+    await slashMenu.waitFor({ state: 'visible' });
     await pressArrowDown(page, 4);
     await expect(slashItems.nth(4)).toHaveAttribute('hover', 'true');
     await expect(slashItems.nth(4).locator('.text')).toHaveText([
@@ -757,6 +762,7 @@ test('should insert database', async ({ page }) => {
   expect(await defaultRows.count()).toBe(3);
 });
 
+// TODO(@L-Sun): Refactor this test after refactoring the slash menu
 test.describe('slash menu with customize menu', () => {
   test('can remove specified menus', async ({ page }) => {
     await enterPlaygroundRoom(page);
@@ -774,15 +780,17 @@ test.describe('slash menu with customize menu', () => {
 
       const SlashMenuWidget = window.$blocksuite.blocks.AffineSlashMenuWidget;
       class CustomSlashMenu extends SlashMenuWidget {
-        override config = {
-          ...SlashMenuWidget.DEFAULT_CONFIG,
-          items: [
-            { groupName: 'custom-group' },
-            ...SlashMenuWidget.DEFAULT_CONFIG.items
+        override get config() {
+          return {
+            items: super.config.items
               .filter(item => 'action' in item)
-              .slice(0, 5),
-          ],
-        };
+              .slice(0, 5)
+              .map<SlashMenuActionItem>((item, index) => ({
+                ...item,
+                group: `0_custom-group@${index++}`,
+              })),
+          };
+        }
       }
       // Fix `Illegal constructor` error
       // see https://stackoverflow.com/questions/41521812/illegal-constructor-with-ecmascript-6
@@ -833,29 +841,17 @@ test.describe('slash menu with customize menu', () => {
       const SlashMenuWidget = window.$blocksuite.blocks.AffineSlashMenuWidget;
 
       class CustomSlashMenu extends SlashMenuWidget {
-        override config = {
-          ...SlashMenuWidget.DEFAULT_CONFIG,
-          items: [
-            { groupName: 'Custom Menu' },
-            {
-              name: 'Custom Menu Item',
-              // oxlint-disable-next-line @typescript-eslint/no-explicit-any
-              icon: '' as any,
-              action: () => {
-                // do nothing
-              },
-            },
-            {
-              name: 'Custom Menu Item',
-              // oxlint-disable-next-line @typescript-eslint/no-explicit-any
-              icon: '' as any,
-              action: () => {
-                // do nothing
-              },
-              showWhen: () => false,
-            },
-          ],
-        };
+        override get config() {
+          return {
+            items: [
+              {
+                name: 'Custom Menu Item',
+                group: '0_custom-group@0',
+                action: () => {},
+              } satisfies SlashMenuActionItem,
+            ],
+          };
+        }
       }
       // Fix `Illegal constructor` error
       // see https://stackoverflow.com/questions/41521812/illegal-constructor-with-ecmascript-6

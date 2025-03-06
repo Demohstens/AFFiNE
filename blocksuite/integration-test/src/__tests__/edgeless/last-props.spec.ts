@@ -19,7 +19,6 @@ import {
   ShapeType,
   type TextElementModel,
 } from '@blocksuite/blocks';
-import { assertExists } from '@blocksuite/global/utils';
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import { getDocRootBlock } from '../utils/edgeless.js';
@@ -44,84 +43,102 @@ describe('apply last props', () => {
     const rectId = service.crud.addElement('shape', {
       shapeType: ShapeType.Rect,
     });
-    assertExists(rectId);
+    if (!rectId) {
+      throw new Error('rectId is not found');
+    }
     const rectShape = service.crud.getElementById(rectId) as ShapeElementModel;
     expect(rectShape.fillColor).toBe(DefaultTheme.shapeFillColor);
     service.crud.updateElement(rectId, {
-      fillColor: DefaultTheme.FillColorMap.Orange,
+      fillColor: DefaultTheme.FillColorShortMap.Orange,
     });
     expect(
       std.get(EditPropsStore).lastProps$.value[`shape:${ShapeType.Rect}`]
         .fillColor
-    ).toBe(DefaultTheme.FillColorMap.Orange);
+    ).toBe(DefaultTheme.FillColorShortMap.Orange);
 
     // diamond shape
     const diamondId = service.crud.addElement('shape', {
       shapeType: ShapeType.Diamond,
     });
-    assertExists(diamondId);
+    if (!diamondId) {
+      throw new Error('diamondId is not found');
+    }
     const diamondShape = service.crud.getElementById(
       diamondId
     ) as ShapeElementModel;
-    expect(diamondShape.fillColor).toBe(DefaultTheme.FillColorMap.Yellow);
+    expect(diamondShape.fillColor).toBe(DefaultTheme.FillColorShortMap.Yellow);
     service.crud.updateElement(diamondId, {
-      fillColor: DefaultTheme.FillColorMap.Blue,
+      fillColor: DefaultTheme.FillColorShortMap.Blue,
     });
     expect(
       std.get(EditPropsStore).lastProps$.value[`shape:${ShapeType.Diamond}`]
         .fillColor
-    ).toBe(DefaultTheme.FillColorMap.Blue);
+    ).toBe(DefaultTheme.FillColorShortMap.Blue);
 
     // rounded rect shape
     const roundedRectId = service.crud.addElement('shape', {
       shapeType: ShapeType.Rect,
       radius: 0.1,
     });
-    assertExists(roundedRectId);
+    if (!roundedRectId) {
+      throw new Error('roundedRectId is not found');
+    }
     const roundedRectShape = service.crud.getElementById(
       roundedRectId
     ) as ShapeElementModel;
-    expect(roundedRectShape.fillColor).toBe(DefaultTheme.FillColorMap.Yellow);
+    expect(roundedRectShape.fillColor).toBe(
+      DefaultTheme.FillColorShortMap.Yellow
+    );
     service.crud.updateElement(roundedRectId, {
-      fillColor: DefaultTheme.FillColorMap.Green,
+      fillColor: DefaultTheme.FillColorShortMap.Green,
     });
     expect(
       std.get(EditPropsStore).lastProps$.value['shape:roundedRect'].fillColor
-    ).toBe(DefaultTheme.FillColorMap.Green);
+    ).toBe(DefaultTheme.FillColorShortMap.Green);
 
     // apply last props
     const rectId2 = service.crud.addElement('shape', {
       shapeType: ShapeType.Rect,
     });
-    assertExists(rectId2);
+    if (!rectId2) {
+      throw new Error('rectId2 is not found');
+    }
     const rectShape2 = service.crud.getElementById(
       rectId2
     ) as ShapeElementModel;
-    expect(rectShape2.fillColor).toBe(DefaultTheme.FillColorMap.Orange);
+    expect(rectShape2.fillColor).toBe(DefaultTheme.FillColorShortMap.Orange);
 
     const diamondId2 = service.crud.addElement('shape', {
       shapeType: ShapeType.Diamond,
     });
-    assertExists(diamondId2);
+    if (!diamondId2) {
+      throw new Error('diamondId2 is not found');
+    }
     const diamondShape2 = service.crud.getElementById(
       diamondId2
     ) as ShapeElementModel;
-    expect(diamondShape2.fillColor).toBe(DefaultTheme.FillColorMap.Blue);
+    expect(diamondShape2.fillColor).toBe(DefaultTheme.FillColorShortMap.Blue);
 
     const roundedRectId2 = service.crud.addElement('shape', {
       shapeType: ShapeType.Rect,
       radius: 0.1,
     });
-    assertExists(roundedRectId2);
+    if (!roundedRectId2) {
+      throw new Error('roundedRectId2 is not found');
+    }
     const roundedRectShape2 = service.crud.getElementById(
       roundedRectId2
     ) as ShapeElementModel;
-    expect(roundedRectShape2.fillColor).toBe(DefaultTheme.FillColorMap.Green);
+    expect(roundedRectShape2.fillColor).toBe(
+      DefaultTheme.FillColorShortMap.Green
+    );
   });
 
   test('connector', () => {
     const id = service.crud.addElement('connector', { mode: 0 });
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const connector = service.crud.getElementById(id) as ConnectorElementModel;
     expect(connector.stroke).toBe(DefaultTheme.connectorColor);
     expect(connector.strokeWidth).toBe(2);
@@ -131,7 +148,9 @@ describe('apply last props', () => {
     service.crud.updateElement(id, { strokeWidth: 10 });
 
     const id2 = service.crud.addElement('connector', { mode: 1 });
-    assertExists(id2);
+    if (!id2) {
+      throw new Error('id2 is not found');
+    }
     const connector2 = service.crud.getElementById(
       id2
     ) as ConnectorElementModel;
@@ -144,7 +163,9 @@ describe('apply last props', () => {
     });
 
     const id3 = service.crud.addElement('connector', { mode: 1 });
-    assertExists(id3);
+    if (!id3) {
+      throw new Error('id3 is not found');
+    }
     const connector3 = service.crud.getElementById(
       id3
     ) as ConnectorElementModel;
@@ -155,7 +176,9 @@ describe('apply last props', () => {
 
   test('brush', () => {
     const id = service.crud.addElement('brush', {});
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const brush = service.crud.getElementById(id) as BrushElementModel;
     expect(brush.color).toEqual(DefaultTheme.black);
     expect(brush.lineWidth).toBe(4);
@@ -168,7 +191,9 @@ describe('apply last props', () => {
 
   test('text', () => {
     const id = service.crud.addElement('text', {});
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const text = service.crud.getElementById(id) as TextElementModel;
     expect(text.fontSize).toBe(24);
     service.crud.updateElement(id, { fontSize: 36 });
@@ -180,7 +205,9 @@ describe('apply last props', () => {
 
   test('mindmap', () => {
     const id = service.crud.addElement('mindmap', {});
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const mindmap = service.crud.getElementById(id) as MindmapElementModel;
     expect(mindmap.layoutType).toBe(LayoutType.RIGHT);
     expect(mindmap.style).toBe(MindmapStyle.ONE);
@@ -190,7 +217,9 @@ describe('apply last props', () => {
     });
 
     const id2 = service.crud.addElement('mindmap', {});
-    assertExists(id2);
+    if (!id2) {
+      throw new Error('id2 is not found');
+    }
     const mindmap2 = service.crud.getElementById(id2) as MindmapElementModel;
     expect(mindmap2.layoutType).toBe(LayoutType.BALANCE);
     expect(mindmap2.style).toBe(MindmapStyle.THREE);
@@ -199,25 +228,31 @@ describe('apply last props', () => {
   test('edgeless-text', () => {
     const surface = getSurfaceBlock(doc);
     const id = service.crud.addBlock('affine:edgeless-text', {}, surface!.id);
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const text = service.crud.getElementById(id) as EdgelessTextBlockModel;
     expect(text.color).toBe(DefaultTheme.textColor);
     expect(text.fontFamily).toBe(FontFamily.Inter);
     service.crud.updateElement(id, {
-      color: DefaultTheme.StrokeColorMap.Green,
+      color: DefaultTheme.StrokeColorShortMap.Green,
       fontFamily: FontFamily.OrelegaOne,
     });
 
     const id2 = service.crud.addBlock('affine:edgeless-text', {}, surface!.id);
-    assertExists(id2);
+    if (!id2) {
+      throw new Error('id2 is not found');
+    }
     const text2 = service.crud.getElementById(id2) as EdgelessTextBlockModel;
-    expect(text2.color).toBe(DefaultTheme.StrokeColorMap.Green);
+    expect(text2.color).toBe(DefaultTheme.StrokeColorShortMap.Green);
     expect(text2.fontFamily).toBe(FontFamily.OrelegaOne);
   });
 
   test('note', () => {
     const id = service.crud.addBlock('affine:note', {}, doc.root!.id);
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const note = service.crud.getElementById(id) as NoteBlockModel;
     expect(note.background).toEqual(DefaultTheme.noteBackgrounColor);
     expect(note.edgeless.style.shadowType).toBe(DEFAULT_NOTE_SHADOW);
@@ -231,7 +266,9 @@ describe('apply last props', () => {
     });
 
     const id2 = service.crud.addBlock('affine:note', {}, doc.root!.id);
-    assertExists(id2);
+    if (!id2) {
+      throw new Error('id2 is not found');
+    }
     const note2 = service.crud.getElementById(id2) as NoteBlockModel;
     expect(note2.background).toEqual(
       DefaultTheme.NoteBackgroundColorMap.Purple
@@ -242,23 +279,29 @@ describe('apply last props', () => {
   test('frame', () => {
     const surface = getSurfaceBlock(doc);
     const id = service.crud.addBlock('affine:frame', {}, surface!.id);
-    assertExists(id);
+    if (!id) {
+      throw new Error('id is not found');
+    }
     const note = service.crud.getElementById(id) as FrameBlockModel;
     expect(note.background).toBe('transparent');
     service.crud.updateElement(id, {
-      background: DefaultTheme.StrokeColorMap.Purple,
+      background: DefaultTheme.StrokeColorShortMap.Purple,
     });
 
     const id2 = service.crud.addBlock('affine:frame', {}, surface!.id);
-    assertExists(id2);
+    if (!id2) {
+      throw new Error('id2 is not found');
+    }
     const frame2 = service.crud.getElementById(id2) as FrameBlockModel;
-    expect(frame2.background).toBe(DefaultTheme.StrokeColorMap.Purple);
+    expect(frame2.background).toBe(DefaultTheme.StrokeColorShortMap.Purple);
     service.crud.updateElement(id2, {
       background: { normal: '#def4e740' },
     });
 
     const id3 = service.crud.addBlock('affine:frame', {}, surface!.id);
-    assertExists(id3);
+    if (!id3) {
+      throw new Error('id3 is not found');
+    }
     const frame3 = service.crud.getElementById(id3) as FrameBlockModel;
     expect(frame3.background).toEqual({ normal: '#def4e740' });
     service.crud.updateElement(id3, {
@@ -266,7 +309,9 @@ describe('apply last props', () => {
     });
 
     const id4 = service.crud.addBlock('affine:frame', {}, surface!.id);
-    assertExists(id4);
+    if (!id4) {
+      throw new Error('id4 is not found');
+    }
     const frame4 = service.crud.getElementById(id4) as FrameBlockModel;
     expect(frame4.background).toEqual({
       light: '#a381aa23',

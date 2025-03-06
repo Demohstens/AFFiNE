@@ -1,12 +1,9 @@
-import {
-  assertType,
-  Bound,
-  DisposableGroup,
-  last,
-  Slot,
-} from '@blocksuite/global/utils';
+import { Bound } from '@blocksuite/global/gfx';
+import { DisposableGroup, Slot } from '@blocksuite/global/slot';
+import { assertType } from '@blocksuite/global/utils';
 import type { Store } from '@blocksuite/store';
 import { generateKeyBetween } from 'fractional-indexing';
+import last from 'lodash-es/last';
 
 import {
   compare,
@@ -162,7 +159,9 @@ export class LayerManager {
       if (curLayer) {
         curLayer.indexes = [
           getElementIndex(curLayer.elements[0]),
-          getElementIndex(last(curLayer.elements)!),
+          getElementIndex(
+            last(curLayer.elements as GfxPrimitiveElementModel[])!
+          ),
         ];
         curLayer.zIndex = currentCSSZindex;
         layers.push(curLayer as LayerManager['layers'][number]);
@@ -342,7 +341,10 @@ export class LayerManager {
     if (
       !last(this.layers) ||
       [SortOrder.AFTER, SortOrder.SAME].includes(
-        compare(target, last(last(this.layers)!.elements)!)
+        compare(
+          target,
+          last(last(this.layers)!.elements as GfxPrimitiveElementModel[])!
+        )
       )
     ) {
       const layer = last(this.layers);
@@ -364,7 +366,15 @@ export class LayerManager {
         const layer = layers[cur];
         const layerElements = layer.elements;
 
-        if (isInRange([layerElements[0], last(layerElements)!], target)) {
+        if (
+          isInRange(
+            [
+              layerElements[0],
+              last(layerElements as GfxPrimitiveElementModel[])!,
+            ],
+            target
+          )
+        ) {
           const insertIdx = layerElements.findIndex((_, idx) => {
             const pre = layerElements[idx - 1];
             return (
@@ -392,7 +402,13 @@ export class LayerManager {
         } else {
           const nextLayer = layers[cur - 1];
 
-          if (!nextLayer || compare(target, last(nextLayer.elements)!) >= 0) {
+          if (
+            !nextLayer ||
+            compare(
+              target,
+              last(nextLayer.elements as GfxPrimitiveElementModel[])!
+            ) >= 0
+          ) {
             if (layer.type === type) {
               addToLayer(layer, target, 0);
               updateLayersZIndex(layers, cur);
@@ -514,7 +530,8 @@ export class LayerManager {
     const isLocalElem = element instanceof GfxLocalElementModel;
 
     const indexChanged = !props || 'index' in props;
-    const childIdsChanged = props && 'childIds' in props;
+    const childIdsChanged =
+      props && ('childIds' in props || 'childElementIds' in props);
     const shouldUpdateGroupChildren =
       isGfxGroupCompatibleModel(element) && (indexChanged || childIdsChanged);
     const updateArray = (array: GfxModel[], element: GfxModel) => {
@@ -798,7 +815,7 @@ export class LayerManager {
 
             if (
               (payload.props.key === 'index' ||
-                payload.props.key === 'childIds') &&
+                payload.props.key === 'childElementIds') &&
               block instanceof GfxBlockElementModel &&
               (block.parent instanceof SurfaceBlockModel ||
                 block.parent?.role === 'root')

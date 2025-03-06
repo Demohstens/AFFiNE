@@ -14,11 +14,8 @@ import {
   type Member,
   MemberSearchService,
 } from '@affine/core/modules/permissions';
-import {
-  DocRole,
-  UserFriendlyError,
-  WorkspaceMemberStatus,
-} from '@affine/graphql';
+import { UserFriendlyError } from '@affine/error';
+import { DocRole, WorkspaceMemberStatus } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import { track } from '@affine/track';
 import { ArrowLeftBigIcon } from '@blocksuite/icons/rc';
@@ -107,17 +104,24 @@ export const InviteMemberEditor = ({
         selectedMemberIds,
         inviteDocRoleType
       );
+      onClickCancel();
 
       notify.success({
-        title: 'Invite successful',
+        title: t['Invitation sent'](),
       });
     } catch (error) {
-      const err = UserFriendlyError.fromAnyError(error);
+      const err = UserFriendlyError.fromAny(error);
       notify.error({
         title: t[`error.${err.name}`](err.data),
       });
     }
-  }, [docGrantedUsersService, inviteDocRoleType, selectedMembers, t]);
+  }, [
+    docGrantedUsersService,
+    inviteDocRoleType,
+    onClickCancel,
+    selectedMembers,
+    t,
+  ]);
 
   const handleCompositionStart: CompositionEventHandler<HTMLInputElement> =
     useCallback(() => {

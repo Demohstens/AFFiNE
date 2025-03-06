@@ -7,14 +7,16 @@ import {
   NotificationProvider,
   type SpecBuilder,
 } from '@blocksuite/affine/blocks';
-import { WithDisposable } from '@blocksuite/affine/global/utils';
+import { SignalWatcher, WithDisposable } from '@blocksuite/affine/global/lit';
 import type { Store } from '@blocksuite/affine/store';
+import { HelpIcon, InformationIcon } from '@blocksuite/icons/lit';
+import { type Signal, signal } from '@preact/signals-core';
 import { css, html, type PropertyValues } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { createRef, type Ref, ref } from 'lit/directives/ref.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { throttle } from 'lodash-es';
 
-import { AIHelpIcon, SmallHintIcon } from '../_common/icons';
 import { AIProvider } from '../provider';
 import { extractSelectedContent } from '../utils/extract';
 import {
@@ -23,11 +25,11 @@ import {
 } from '../utils/selection-utils';
 import type {
   AINetworkSearchConfig,
+  AppSidebarConfig,
   DocDisplayConfig,
   DocSearchMenuConfig,
 } from './chat-config';
 import type {
-  ChatAction,
   ChatContextValue,
   ChatItem,
   DocChip,
@@ -47,7 +49,9 @@ const DEFAULT_CHAT_CONTEXT_VALUE: ChatContextValue = {
   markdown: '',
 };
 
-export class ChatPanel extends WithDisposable(ShadowlessElement) {
+export class ChatPanel extends SignalWatcher(
+  WithDisposable(ShadowlessElement)
+) {
   static override styles = css`
     chat-panel {
       width: 100%;
@@ -56,8 +60,6 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
     .chat-panel-container {
       display: flex;
       flex-direction: column;
-      padding: 0 16px;
-      padding-top: 8px;
       height: 100%;
     }
 
@@ -85,6 +87,12 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
         justify-content: center;
         align-items: center;
         cursor: pointer;
+      }
+
+      svg {
+        width: 18px;
+        height: 18px;
+        color: var(--affine-text-secondary-color);
       }
     }
 
@@ -129,9 +137,10 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
   // request counter to track the latest request
   private _updateHistoryCounter = 0;
 
+  private _wheelTriggered = false;
+
   private readonly _updateHistory = async () => {
     const { doc } = this;
-    this.isLoading = true;
 
     const currentRequest = ++this._updateHistoryCounter;
 
@@ -147,9 +156,10 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
 
     const items: ChatItem[] = actions ? [...actions] : [];
 
-    if (histories?.at(-1)) {
-      const history = histories.at(-1);
-      if (!history) return;
+    const history = histories?.find(
+      history => history.sessionId === this._chatSessionId
+    );
+    if (history) {
       items.push(...history.messages);
       AIProvider.LAST_ROOT_SESSION_ID = history.sessionId;
     }
@@ -162,7 +172,6 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
       ),
     };
 
-    this.isLoading = false;
     this._scrollToEnd();
   };
 
@@ -242,6 +251,9 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
   accessor networkSearchConfig!: AINetworkSearchConfig;
 
   @property({ attribute: false })
+  accessor appSidebarConfig!: AppSidebarConfig;
+
+  @property({ attribute: false })
   accessor docSearchMenuConfig!: DocSearchMenuConfig;
 
   @property({ attribute: false })
@@ -251,7 +263,7 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
   accessor previewSpecBuilder!: SpecBuilder;
 
   @state()
-  accessor isLoading = false;
+  accessor isLoading = true;
 
   @state()
   accessor chatContextValue: ChatContextValue = DEFAULT_CHAT_CONTEXT_VALUE;
@@ -260,11 +272,17 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
 
   private _chatContextId: string | null | undefined = null;
 
+  private _isOpen: Signal<boolean | undefined> = signal(false);
+
+  private _width: Signal<number | undefined> = signal(undefined);
+
   private readonly _scrollToEnd = () => {
-    this._chatMessages.value?.scrollToEnd();
+    if (!this._wheelTriggered) {
+      this._chatMessages.value?.scrollToEnd();
+    }
   };
 
-  private readonly _throttledScrollToEnd = throttle(this._scrollToEnd, 1000);
+  private readonly _throttledScrollToEnd = throttle(this._scrollToEnd, 600);
 
   private readonly _cleanupHistories = async () => {
     const notification = this.host.std.getOptional(NotificationProvider);
@@ -279,13 +297,12 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
         cancelText: 'Cancel',
       })
     ) {
+      const actionIds = this.chatContextValue.items
+        .filter(item => 'sessionId' in item)
+        .map(item => item.sessionId);
       await AIProvider.histories?.cleanup(this.doc.workspace.id, this.doc.id, [
-        this._chatSessionId ?? '',
-        ...(
-          this.chatContextValue.items.filter(
-            item => 'sessionId' in item
-          ) as ChatAction[]
-        ).map(item => item.sessionId),
+        ...(this._chatSessionId ? [this._chatSessionId] : []),
+        ...(actionIds || []),
       ]);
       notification.toast('History cleared');
       await this._updateHistory();
@@ -293,24 +310,36 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
   };
 
   private readonly _initPanel = async () => {
-    const userId = (await AIProvider.userInfo)?.id;
-    if (!userId) return;
+    try {
+      if (!this._isOpen.value) return;
 
-    const sessionIds = await AIProvider.session?.getSessionIds(
-      this.doc.workspace.id,
-      this.doc.id
-    );
-    if (sessionIds?.length) {
-      this._chatSessionId = sessionIds[0];
-      await this._updateHistory();
+      const userId = (await AIProvider.userInfo)?.id;
+      if (!userId) return;
+
+      this.isLoading = true;
+      const sessions = (
+        (await AIProvider.session?.getSessions(
+          this.doc.workspace.id,
+          this.doc.id,
+          { action: false }
+        )) || []
+      ).filter(session => !session.parentSessionId);
+
+      if (sessions && sessions.length) {
+        this._chatSessionId = sessions.at(-1)?.id;
+        await this._updateHistory();
+      }
+      this.isLoading = false;
+      if (this._chatSessionId) {
+        this._chatContextId = await AIProvider.context?.getContextId(
+          this.doc.workspace.id,
+          this._chatSessionId
+        );
+      }
+      await this._updateChips();
+    } catch (error) {
+      console.error(error);
     }
-    if (this._chatSessionId) {
-      this._chatContextId = await AIProvider.context?.getContextId(
-        this.doc.workspace.id,
-        this._chatSessionId
-      );
-    }
-    await this._updateChips();
   };
 
   protected override updated(_changedProperties: PropertyValues) {
@@ -318,10 +347,16 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
       this._chatSessionId = null;
       this._chatContextId = null;
       this.chatContextValue = DEFAULT_CHAT_CONTEXT_VALUE;
+      this.isLoading = true;
 
       requestAnimationFrame(async () => {
         await this._initPanel();
       });
+    }
+
+    if (this.chatContextValue.status === 'loading') {
+      // reset the wheel triggered flag when the status is loading
+      this._wheelTriggered = false;
     }
 
     if (
@@ -338,6 +373,19 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
       this.chatContextValue.status === 'transmitting'
     ) {
       this._throttledScrollToEnd();
+    }
+  }
+
+  protected override firstUpdated(): void {
+    const chatMessages = this._chatMessages.value;
+    if (chatMessages) {
+      chatMessages.updateComplete
+        .then(() => {
+          chatMessages.getScrollContainer()?.addEventListener('wheel', () => {
+            this._wheelTriggered = true;
+          });
+        })
+        .catch(console.error);
     }
   }
 
@@ -370,6 +418,22 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
         }
       })
     );
+
+    const isOpen = this.appSidebarConfig.isOpen();
+    this._isOpen = isOpen.signal;
+    this._disposables.add(isOpen.cleanup);
+
+    const width = this.appSidebarConfig.getWidth();
+    this._width = width.signal;
+    this._disposables.add(width.cleanup);
+
+    this._disposables.add(
+      this._isOpen.subscribe(isOpen => {
+        if (isOpen && this.isLoading) {
+          this._initPanel().catch(console.error);
+        }
+      })
+    );
   }
 
   updateContext = (context: Partial<ChatContextValue>) => {
@@ -388,7 +452,12 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
   };
 
   override render() {
-    return html` <div class="chat-panel-container">
+    const width = this._width.value || 0;
+    const style = styleMap({
+      padding: width > 540 ? '8px 24px 0 24px' : '8px 12px 0 12px',
+    });
+
+    return html`<div class="chat-panel-container" style=${style}>
       <div class="chat-panel-title">
         <div>AFFiNE AI</div>
         <div
@@ -396,7 +465,7 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
             AIProvider.toggleGeneralAIOnboarding?.(true);
           }}
         >
-          ${AIHelpIcon}
+          ${HelpIcon()}
         </div>
       </div>
       <chat-panel-messages
@@ -425,7 +494,7 @@ export class ChatPanel extends WithDisposable(ShadowlessElement) {
         .cleanupHistories=${this._cleanupHistories}
       ></chat-panel-input>
       <div class="chat-panel-footer">
-        ${SmallHintIcon}
+        ${InformationIcon()}
         <div>AI outputs can be misleading or wrong</div>
       </div>
     </div>`;

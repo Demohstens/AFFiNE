@@ -36,7 +36,6 @@ import {
   assertBlockCount,
   assertBlockFlavour,
   assertBlockSelections,
-  assertExists,
   assertParentBlockFlavour,
   assertRichTextInlineRange,
 } from './utils/asserts.js';
@@ -238,7 +237,8 @@ test.describe('embed card toolbar', () => {
     await showEmbedCardToolbar(page);
   });
 
-  test('copy bookmark url by copy button', async ({ page }, testInfo) => {
+  // TODO(@fundon): should move to affine side
+  test.skip('copy bookmark url by copy button', async ({ page }, testInfo) => {
     await showEmbedCardToolbar(page);
     const { copyButton } = getEmbedCardToolbar(page);
     await copyButton.click();
@@ -261,7 +261,9 @@ test.describe('embed card toolbar', () => {
     await cardStyleListButton.click();
     await waitNextFrame(page);
     const listStyleBookmarkBox = await bookmark.boundingBox();
-    assertExists(listStyleBookmarkBox);
+    if (!listStyleBookmarkBox) {
+      throw new Error('listStyleBookmarkBox is not found');
+    }
     assertAlmostEqual(listStyleBookmarkBox.width, 752, 2);
     assertAlmostEqual(listStyleBookmarkBox.height, 48, 2);
 
@@ -269,7 +271,9 @@ test.describe('embed card toolbar', () => {
     await cardStyleHorizontalButton.click();
     await waitNextFrame(page);
     const horizontalStyleBookmarkBox = await bookmark.boundingBox();
-    assertExists(horizontalStyleBookmarkBox);
+    if (!horizontalStyleBookmarkBox) {
+      throw new Error('horizontalStyleBookmarkBox is not found');
+    }
     assertAlmostEqual(horizontalStyleBookmarkBox.width, 752, 2);
     assertAlmostEqual(horizontalStyleBookmarkBox.height, 116, 2);
   });
@@ -371,7 +375,7 @@ test.describe('embed youtube card', () => {
     await page.waitForTimeout(100);
 
     // change to card view
-    const embedToolbar = page.locator('affine-embed-card-toolbar');
+    const embedToolbar = page.locator('affine-toolbar-widget editor-toolbar');
     await expect(embedToolbar).toBeVisible();
     const embedView = page.locator('editor-menu-button', {
       hasText: 'embed view',
@@ -426,7 +430,7 @@ test.describe('embed figma card', () => {
     await page.waitForTimeout(100);
 
     // change to card view
-    const embedToolbar = page.locator('affine-embed-card-toolbar');
+    const embedToolbar = page.locator('affine-toolbar-widget editor-toolbar');
     await expect(embedToolbar).toBeVisible();
     const embedView = page.locator('editor-menu-button', {
       hasText: 'embed view',

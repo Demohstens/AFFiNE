@@ -1,7 +1,7 @@
 # we will make this file shared by prettier|eslint|oxlint
 **/node_modules
 .yarn
-.github
+.github/helm
 .vscode
 .yarnrc.yml
 .docker
@@ -32,7 +32,5 @@ packages/backend/server/src/__tests__/__snapshots__
 packages/common/native/fixtures/**
 packages/frontend/native/index.d.ts
 packages/frontend/native/index.js
-packages/frontend/graphql/src/graphql/index.ts
-packages/frontend/graphql/src/schema.ts
 packages/frontend/apps/android/App/app/build/**
 blocksuite/tests-legacy/snapshots

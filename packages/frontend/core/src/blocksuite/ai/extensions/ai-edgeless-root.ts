@@ -1,19 +1,22 @@
-import { BlockServiceWatcher } from '@blocksuite/affine/block-std';
 import {
-  AffineFormatBarWidget,
+  BlockFlavourIdentifier,
+  LifeCycleWatcher,
+} from '@blocksuite/affine/block-std';
+import {
   AffineSlashMenuWidget,
   EdgelessElementToolbarWidget,
   EdgelessRootBlockSpec,
+  ToolbarModuleExtension,
 } from '@blocksuite/affine/blocks';
 import type { ExtensionType } from '@blocksuite/affine/store';
 import type { FrameworkProvider } from '@toeverything/infra';
 
 import { buildAIPanelConfig } from '../ai-panel';
+import { toolbarAIEntryConfig } from '../entries';
 import {
   setupEdgelessCopilot,
   setupEdgelessElementToolbarAIEntry,
 } from '../entries/edgeless/index';
-import { setupFormatBarAIEntry } from '../entries/format-bar/setup-format-bar';
 import { setupSlashMenuAIEntry } from '../entries/slash-menu/setup-slash-menu';
 import { setupSpaceAIEntry } from '../entries/space/setup-space';
 import { CopilotTool } from '../tool/copilot-tool';
@@ -35,36 +38,41 @@ export function createAIEdgelessRootBlockSpec(
     aiPanelWidget,
     edgelessCopilotWidget,
     getAIEdgelessRootWatcher(framework),
+    ToolbarModuleExtension({
+      id: BlockFlavourIdentifier('custom:affine:note'),
+      config: toolbarAIEntryConfig(),
+    }),
   ];
 }
 
 function getAIEdgelessRootWatcher(framework: FrameworkProvider) {
-  class AIEdgelessRootWatcher extends BlockServiceWatcher {
-    static override readonly flavour = 'affine:page';
+  class AIEdgelessRootWatcher extends LifeCycleWatcher {
+    static override key = 'ai-edgeless-root-watcher';
 
     override mounted() {
       super.mounted();
-      this.blockService.specSlots.widgetConnected.on(view => {
-        if (view.component instanceof AffineAIPanelWidget) {
-          view.component.style.width = '430px';
-          view.component.config = buildAIPanelConfig(view.component, framework);
-          setupSpaceAIEntry(view.component);
+      const { view } = this.std;
+      view.viewUpdated.on(payload => {
+        if (payload.type !== 'widget' || payload.method !== 'add') {
+          return;
+        }
+        const component = payload.view;
+        if (component instanceof AffineAIPanelWidget) {
+          component.style.width = '430px';
+          component.config = buildAIPanelConfig(component, framework);
+          setupSpaceAIEntry(component);
         }
 
-        if (view.component instanceof EdgelessCopilotWidget) {
-          setupEdgelessCopilot(view.component);
+        if (component instanceof EdgelessCopilotWidget) {
+          setupEdgelessCopilot(component);
         }
 
-        if (view.component instanceof EdgelessElementToolbarWidget) {
-          setupEdgelessElementToolbarAIEntry(view.component);
+        if (component instanceof EdgelessElementToolbarWidget) {
+          setupEdgelessElementToolbarAIEntry(component);
         }
 
-        if (view.component instanceof AffineFormatBarWidget) {
-          setupFormatBarAIEntry(view.component);
-        }
-
-        if (view.component instanceof AffineSlashMenuWidget) {
-          setupSlashMenuAIEntry(view.component);
+        if (component instanceof AffineSlashMenuWidget) {
+          setupSlashMenuAIEntry(this.std);
         }
       });
     }

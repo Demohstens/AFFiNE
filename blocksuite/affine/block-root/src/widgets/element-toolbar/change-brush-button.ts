@@ -19,10 +19,12 @@ import {
 } from '@blocksuite/affine-model';
 import { FeatureFlagService } from '@blocksuite/affine-shared/services';
 import type { ColorEvent } from '@blocksuite/affine-shared/utils';
-import { countBy, maxBy, WithDisposable } from '@blocksuite/global/utils';
+import { WithDisposable } from '@blocksuite/global/lit';
 import { html, LitElement, nothing } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { when } from 'lit/directives/when.js';
+import countBy from 'lodash-es/countBy';
+import maxBy from 'lodash-es/maxBy';
 
 import type { LineWidthEvent } from '../../edgeless/components/panel/line-width-panel.js';
 import type { EdgelessRootBlockComponent } from '../../edgeless/edgeless-root-block.js';
@@ -134,13 +136,12 @@ export class EdgelessChangeBrushButton extends WithDisposable(LitElement) {
           return html`
             <edgeless-color-picker-button
               class="color"
-              .label=${'Color'}
+              .label="${'Color'}"
               .pick=${this.pickColor}
               .color=${selectedColor}
               .colors=${colors}
               .colorType=${type}
               .theme=${colorScheme}
-              .palettes=${DefaultTheme.Palettes}
             >
             </edgeless-color-picker-button>
           `;
@@ -159,7 +160,6 @@ export class EdgelessChangeBrushButton extends WithDisposable(LitElement) {
             <edgeless-color-panel
               .value=${selectedColor}
               .theme=${colorScheme}
-              .palettes=${DefaultTheme.Palettes}
               @select=${this._setBrushColor}
             >
             </edgeless-color-panel>

@@ -1,5 +1,5 @@
 import { BlockSuiteError, ErrorCode } from '@blocksuite/global/exceptions';
-import { type Slot } from '@blocksuite/global/utils';
+import type { Slot } from '@blocksuite/global/slot';
 import { signal } from '@preact/signals-core';
 import {
   Array as YArray,
@@ -22,15 +22,16 @@ const keyWithoutPrefix = (key: string) => key.replace(/(prop|sys):/, '');
 const keyWithPrefix = (key: string) =>
   SYS_KEYS.has(key) ? `sys:${key}` : `prop:${key}`;
 
-type OnChange = (key: string, value: unknown) => void;
+type OnChange = (key: string) => void;
 type Transform = (key: string, value: unknown, origin: unknown) => unknown;
 
 type CreateProxyOptions = {
   basePath?: string;
   onChange?: OnChange;
-  transform?: Transform;
+  transform: Transform;
   onDispose: Slot;
   shouldByPassSignal: () => boolean;
+  shouldByPassYjs: () => boolean;
   byPassSignalUpdate: (fn: () => void) => void;
   stashed: Set<string | number>;
   initialized: () => boolean;
@@ -58,11 +59,12 @@ function createProxy(
   const {
     onDispose,
     shouldByPassSignal,
+    shouldByPassYjs,
     byPassSignalUpdate,
     basePath,
     onChange,
     initialized,
-    transform = (_key, value) => value,
+    transform,
     stashed,
   } = options;
   const isRoot = !basePath;
@@ -118,7 +120,7 @@ function createProxy(
                 }
                 byPassSignalUpdate(() => {
                   proxy[p] = next;
-                  onChange?.(firstKey, next);
+                  onChange?.(firstKey);
                 });
               })
             );
@@ -135,12 +137,15 @@ function createProxy(
                   : prev;
             // @ts-expect-error allow magic props
             root[signalKey].value = next;
-            onChange?.(firstKey, next);
+            onChange?.(firstKey);
           });
         };
 
         if (isPureObject(value)) {
           const syncYMap = () => {
+            if (shouldByPassYjs()) {
+              return;
+            }
             yMap.forEach((_, key) => {
               if (initialized() && keyWithoutPrefix(key).startsWith(fullPath)) {
                 yMap.delete(key);
@@ -153,6 +158,11 @@ function createProxy(
                   run(value, fullPath);
                 } else {
                   list.push(() => {
+                    if (value instanceof Text || Boxed.is(value)) {
+                      value.bind(() => {
+                        onChange?.(firstKey);
+                      });
+                    }
                     yMap.set(keyWithPrefix(fullPath), native2Y(value));
                   });
                 }
@@ -183,9 +193,14 @@ function createProxy(
           return result;
         }
 
+        if (value instanceof Text || Boxed.is(value)) {
+          value.bind(() => {
+            onChange?.(firstKey);
+          });
+        }
         const yValue = native2Y(value);
         const next = transform(firstKey, value, yValue);
-        if (!isStashed && initialized()) {
+        if (!isStashed && initialized() && !shouldByPassYjs()) {
           yMap.doc?.transact(
             () => {
               yMap.set(keyWithPrefix(fullPath), yValue);
@@ -234,11 +249,11 @@ function createProxy(
                   : prev;
             // @ts-expect-error allow magic props
             root[signalKey].value = next;
-            onChange?.(firstKey, next);
+            onChange?.(firstKey);
           });
         };
 
-        if (!isStashed && initialized()) {
+        if (!isStashed && initialized() && !shouldByPassYjs()) {
           yMap.doc?.transact(
             () => {
               const fullKey = keyWithPrefix(fullPath);
@@ -292,12 +307,21 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
           if (this._stashed.has(firstKey)) {
             return;
           }
-          void keys.reduce((acc, key, index, arr) => {
-            if (index === arr.length - 1) {
-              acc[key] = y2Native(value);
-            }
-            return acc[key] as UnRecord;
-          }, proxy as UnRecord);
+          this._updateWithYjsSkip(() => {
+            void keys.reduce((acc, key, index, arr) => {
+              if (!acc[key] && index !== arr.length - 1) {
+                acc[key] = {};
+              }
+              if (index === arr.length - 1) {
+                acc[key] = y2Native(value, {
+                  transform: (value, origin) => {
+                    return this._transform(firstKey, value, origin);
+                  },
+                });
+              }
+              return acc[key] as UnRecord;
+            }, proxy as UnRecord);
+          });
           return;
         }
         if (type.action === 'delete') {
@@ -307,12 +331,32 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
           if (this._stashed.has(firstKey)) {
             return;
           }
-          void keys.reduce((acc, key, index, arr) => {
-            if (index === arr.length - 1) {
-              delete acc[key];
-            }
-            return acc[key] as UnRecord;
-          }, proxy as UnRecord);
+          this._updateWithYjsSkip(() => {
+            void keys.reduce((acc, key, index) => {
+              if (index === keys.length - 1) {
+                delete acc[key];
+                let curr = acc;
+                let parentKey = keys[index - 1];
+                let parent = proxy as UnRecord;
+                let path = keys.slice(0, -2);
+
+                for (let i = keys.length - 2; i > 0; i--) {
+                  for (const pathKey of path) {
+                    parent = parent[pathKey] as UnRecord;
+                  }
+                  if (!isEmptyObject(curr)) {
+                    break;
+                  }
+                  deleteEmptyObject(curr, parentKey, parent);
+                  curr = parent;
+                  parentKey = keys[i - 1];
+                  path = path.slice(0, -1);
+                  parent = proxy as UnRecord;
+                }
+              }
+              return acc[key] as UnRecord;
+            }, proxy as UnRecord);
+          });
           return;
         }
       });
@@ -345,8 +389,7 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
 
   private readonly _getPropOnChange = (key: string) => {
     return () => {
-      const value = this._proxy[key];
-      this._onChange?.(key, value);
+      this._onChange?.(key);
     };
   };
 
@@ -393,6 +436,8 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
     return root;
   };
 
+  private _byPassYjs = false;
+
   private readonly _getProxy = (
     source: UnRecord,
     root: UnRecord,
@@ -402,12 +447,19 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
       onDispose: this._onDispose,
       shouldByPassSignal: () => this._skipNext,
       byPassSignalUpdate: this._updateWithSkip,
+      shouldByPassYjs: () => this._byPassYjs,
       basePath: path,
       onChange: this._onChange,
       transform: this._transform,
       stashed: this._stashed,
       initialized: () => this._initialized,
     });
+  };
+
+  private readonly _updateWithYjsSkip = (fn: () => void) => {
+    this._byPassYjs = true;
+    fn();
+    this._byPassYjs = false;
   };
 
   constructor(
@@ -432,7 +484,7 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
           }
           this._updateWithSkip(() => {
             proxy[key] = next;
-            this._onChange?.(key, next);
+            this._onChange?.(key);
           });
         })
       );
@@ -452,4 +504,14 @@ export class ReactiveFlatYMap extends BaseReactiveYData<
   stash = (prop: string): void => {
     this._stashed.add(prop);
   };
+}
+
+function isEmptyObject(obj: UnRecord): boolean {
+  return Object.keys(obj).length === 0;
+}
+
+function deleteEmptyObject(obj: UnRecord, key: string, parent: UnRecord): void {
+  if (isEmptyObject(obj)) {
+    delete parent[key];
+  }
 }

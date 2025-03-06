@@ -3,7 +3,7 @@ import {
   ErrorCode,
   handleError,
 } from '@blocksuite/global/exceptions';
-import { SignalWatcher, Slot, WithDisposable } from '@blocksuite/global/utils';
+import { SignalWatcher, WithDisposable } from '@blocksuite/global/lit';
 import {
   type BlockModel,
   Store,
@@ -58,7 +58,7 @@ export class EditorHost extends SignalWatcher(
     }
 
     const widgetViews = this.std.provider.getAll(WidgetViewIdentifier);
-    const widgets = widgetViews.entries().reduce(
+    const widgets = Array.from(widgetViews.entries()).reduce(
       (mapping, [key, tag]) => {
         const [widgetFlavour, id] = key.split('|');
         if (widgetFlavour === flavour) {
@@ -87,10 +87,6 @@ export class EditorHost extends SignalWatcher(
       child => child.id,
       child => this._renderModel(child)
     )}`;
-  };
-
-  readonly slots = {
-    unmounted: new Slot(),
   };
 
   get command(): CommandManager {
@@ -130,8 +126,6 @@ export class EditorHost extends SignalWatcher(
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.std.unmount();
-    this.slots.unmounted.emit();
-    this.slots.unmounted.dispose();
   }
 
   override async getUpdateComplete(): Promise<boolean> {

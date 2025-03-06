@@ -14,10 +14,11 @@ import {
 } from '@blocksuite/block-std';
 import { SurfaceBlockModel } from '@blocksuite/block-std/gfx';
 import { createIdentifier } from '@blocksuite/global/di';
-import type { IVec } from '@blocksuite/global/utils';
-import { Point, throttle } from '@blocksuite/global/utils';
+import type { IVec } from '@blocksuite/global/gfx';
+import { Point } from '@blocksuite/global/gfx';
 import type { BlockModel, ExtensionType } from '@blocksuite/store';
 import { computed, signal } from '@preact/signals-core';
+import throttle from 'lodash-es/throttle';
 
 import { DropIndicator } from './drop-indicator';
 

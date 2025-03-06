@@ -39,7 +39,8 @@ import {
   type GfxViewportElement,
 } from '@blocksuite/block-std/gfx';
 import { IS_WINDOWS } from '@blocksuite/global/env';
-import { assertExists, Bound, Point, Vec } from '@blocksuite/global/utils';
+import { BlockSuiteError } from '@blocksuite/global/exceptions';
+import { Bound, Point, Vec } from '@blocksuite/global/gfx';
 import { effect } from '@preact/signals-core';
 import { css, html } from 'lit';
 import { query } from 'lit/decorators.js';
@@ -190,7 +191,12 @@ export class EdgelessRootBlockComponent extends BlockComponent<
     this._viewportElement = this.host.closest(
       '.affine-edgeless-viewport'
     ) as HTMLElement | null;
-    assertExists(this._viewportElement);
+    if (!this._viewportElement) {
+      throw new BlockSuiteError(
+        BlockSuiteError.ErrorCode.ValueNotExists,
+        'EdgelessRootBlockComponent.viewportElement: viewport element is not found'
+      );
+    }
     return this._viewportElement;
   }
 
@@ -447,7 +453,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
           );
 
           const zoom = normalizeWheelDeltaY(e.deltaY, viewport.zoom);
-          viewport.setZoom(zoom, new Point(baseX, baseY));
+          viewport.setZoom(zoom, new Point(baseX, baseY), true);
           e.stopPropagation();
         }
         // pan

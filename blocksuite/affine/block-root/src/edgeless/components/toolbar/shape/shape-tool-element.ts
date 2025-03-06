@@ -8,7 +8,9 @@ import {
   type ShapeName,
   type ShapeStyle,
 } from '@blocksuite/affine-model';
-import { Bound, sleep, WithDisposable } from '@blocksuite/global/utils';
+import { Bound } from '@blocksuite/global/gfx';
+import { WithDisposable } from '@blocksuite/global/lit';
+import { sleep } from '@blocksuite/global/utils';
 import {
   css,
   html,

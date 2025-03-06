@@ -2,15 +2,14 @@ import {
   BlockSuiteError,
   ErrorCode,
 } from '@blocksuite/affine/global/exceptions';
-import { NoopLogger, Slot } from '@blocksuite/affine/global/utils';
+import { Slot } from '@blocksuite/affine/global/slot';
+import { NoopLogger } from '@blocksuite/affine/global/utils';
 import {
-  AwarenessStore,
   type CreateBlocksOptions,
   type Doc,
   type GetBlocksOptions,
   type IdGenerator,
   nanoid,
-  type Schema,
   type Store,
   type Workspace,
   type WorkspaceMeta,
@@ -20,7 +19,7 @@ import {
   type BlobSource,
   MemoryBlobSource,
 } from '@blocksuite/affine/sync';
-import { Awareness } from 'y-protocols/awareness.js';
+import type { Awareness } from 'y-protocols/awareness.js';
 import * as Y from 'yjs';
 
 import { DocImpl } from './doc';
@@ -28,17 +27,12 @@ import { WorkspaceMetaImpl } from './meta';
 
 type WorkspaceOptions = {
   id?: string;
-  schema: Schema;
   blobSource?: BlobSource;
   onLoadDoc?: (doc: Y.Doc) => void;
   onLoadAwareness?: (awareness: Awareness) => void;
 };
 
 export class WorkspaceImpl implements Workspace {
-  protected readonly _schema: Schema;
-
-  readonly awarenessStore: AwarenessStore;
-
   readonly blobSync: BlobEngine;
 
   readonly blockCollections = new Map<string, Doc>();
@@ -61,29 +55,20 @@ export class WorkspaceImpl implements Workspace {
     return this.blockCollections;
   }
 
-  get schema() {
-    return this._schema;
-  }
-
   readonly onLoadDoc?: (doc: Y.Doc) => void;
   readonly onLoadAwareness?: (awareness: Awareness) => void;
 
   constructor({
     id,
-    schema,
     blobSource,
     onLoadDoc,
     onLoadAwareness,
-  }: WorkspaceOptions) {
-    this._schema = schema;
-
+  }: WorkspaceOptions = {}) {
     this.id = id || '';
     this.doc = new Y.Doc({ guid: id });
-    this.awarenessStore = new AwarenessStore(new Awareness(this.doc));
     this.onLoadDoc = onLoadDoc;
-    this.onLoadAwareness = onLoadAwareness;
     this.onLoadDoc?.(this.doc);
-    this.onLoadAwareness?.(this.awarenessStore.awareness);
+    this.onLoadAwareness = onLoadAwareness;
 
     blobSource = blobSource ?? new MemoryBlobSource();
     const logger = new NoopLogger();
@@ -102,7 +87,6 @@ export class WorkspaceImpl implements Workspace {
         id: docId,
         collection: this,
         doc: this.doc,
-        awarenessStore: this.awarenessStore,
       });
       this.blockCollections.set(doc.id, doc);
     });
@@ -150,10 +134,6 @@ export class WorkspaceImpl implements Workspace {
     }) as Store;
   }
 
-  dispose() {
-    this.awarenessStore.destroy();
-  }
-
   private _getDoc(docId: string): Doc | null {
     const space = this.docs.get(docId) as Doc | undefined;
     return space ?? null;
@@ -182,5 +162,9 @@ export class WorkspaceImpl implements Workspace {
     blockCollection.dispose();
     this.meta.removeDocMeta(docId);
     this.blockCollections.delete(docId);
+  }
+
+  dispose() {
+    this.blockCollections.forEach(doc => doc.dispose());
   }
 }

@@ -1,10 +1,8 @@
 import {
   Bound,
   deserializeXYWH,
-  DisposableGroup,
   getBoundWithRotation,
   getPointsFromBoundWithRotation,
-  isEqual,
   type IVec,
   linePolygonIntersects,
   PointLocation,
@@ -13,10 +11,11 @@ import {
   randomSeed,
   rotatePoints,
   type SerializedXYWH,
-  Slot,
   type XYWH,
-} from '@blocksuite/global/utils';
+} from '@blocksuite/global/gfx';
+import { DisposableGroup, Slot } from '@blocksuite/global/slot';
 import { createMutex } from 'lib0/mutex';
+import isEqual from 'lodash-es/isEqual';
 import * as Y from 'yjs';
 
 import {

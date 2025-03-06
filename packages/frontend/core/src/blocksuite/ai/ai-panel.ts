@@ -8,22 +8,22 @@ import {
   NoteBlockModel,
   NoteDisplayMode,
 } from '@blocksuite/affine/blocks';
-import { assertExists, Bound } from '@blocksuite/affine/global/utils';
+import { Bound } from '@blocksuite/affine/global/gfx';
+import {
+  ChatWithAiIcon,
+  DeleteIcon,
+  InsertBleowIcon as InsertBelowIcon,
+  InsertTopIcon,
+  PageIcon,
+  PenIcon,
+  ReplaceIcon,
+  ResetIcon,
+} from '@blocksuite/icons/lit';
 import type { FrameworkProvider } from '@toeverything/infra';
 import type { TemplateResult } from 'lit';
 
 import { insertFromMarkdown } from '../utils';
-import {
-  AIPenIcon,
-  AIStarIconWithAnimation,
-  ChatWithAIIcon,
-  CreateIcon,
-  DiscardIcon,
-  InsertBelowIcon,
-  InsertTopIcon,
-  ReplaceIcon,
-  RetryIcon,
-} from './_common/icons';
+import { AIStarIconWithAnimation } from './_common/icons';
 import {
   EXCLUDING_REPLACE_ACTIONS,
   INSERT_ABOVE_ACTIONS,
@@ -33,7 +33,7 @@ import {
   replaceWithMarkdown,
 } from './actions/page-response';
 import type { AIItemConfig } from './components/ai-item/types';
-import { createTextRenderer } from './components/text-renderer';
+import { createAIScrollableTextRenderer } from './components/ai-scrollable-text-renderer';
 import { AIProvider } from './provider';
 import { reportResponse } from './utils/action-reporter';
 import { getAIPanelWidget } from './utils/ai-widgets';
@@ -50,7 +50,7 @@ function asCaption<T extends keyof BlockSuitePresets.AIActions>(
 ): AIItemConfig {
   return {
     name: 'Use as caption',
-    icon: AIPenIcon,
+    icon: PenIcon(),
     showWhen: () => {
       const panel = getAIPanelWidget(host);
       return id === 'generateCaption' && !!panel.answer;
@@ -76,7 +76,7 @@ function asCaption<T extends keyof BlockSuitePresets.AIActions>(
 function createNewNote(host: EditorHost): AIItemConfig {
   return {
     name: 'Create new note',
-    icon: CreateIcon,
+    icon: PageIcon(),
     showWhen: () => {
       const panel = getAIPanelWidget(host);
       return !!panel.answer && isInsideEdgelessEditor(host);
@@ -97,7 +97,7 @@ function createNewNote(host: EditorHost): AIItemConfig {
       const panel = getAIPanelWidget(host);
       const gfx = host.std.get(GfxControllerIdentifier);
       doc.transact(() => {
-        assertExists(doc.root);
+        if (!doc.root || !panel.answer) return;
         const noteBlockId = doc.addBlock(
           'affine:note',
           {
@@ -108,7 +108,6 @@ function createNewNote(host: EditorHost): AIItemConfig {
           doc.root.id
         );
 
-        assertExists(panel.answer);
         insertFromMarkdown(host, panel.answer, doc, noteBlockId)
           .then(() => {
             gfx.selection.set({
@@ -149,7 +148,7 @@ function buildPageResponseConfig<T extends keyof BlockSuitePresets.AIActions>(
       items: [
         {
           name: 'Insert below',
-          icon: InsertBelowIcon,
+          icon: InsertBelowIcon(),
           showWhen: () =>
             !!panel.answer && (!id || !INSERT_ABOVE_ACTIONS.includes(id)),
           handler: () => {
@@ -160,7 +159,7 @@ function buildPageResponseConfig<T extends keyof BlockSuitePresets.AIActions>(
         },
         {
           name: 'Insert above',
-          icon: InsertTopIcon,
+          icon: InsertTopIcon(),
           showWhen: () =>
             !!panel.answer && !!id && INSERT_ABOVE_ACTIONS.includes(id),
           handler: () => {
@@ -172,7 +171,7 @@ function buildPageResponseConfig<T extends keyof BlockSuitePresets.AIActions>(
         asCaption(host, id),
         {
           name: 'Replace selection',
-          icon: ReplaceIcon,
+          icon: ReplaceIcon(),
           showWhen: () =>
             !!panel.answer && !EXCLUDING_REPLACE_ACTIONS.includes(id),
           handler: () => {
@@ -189,7 +188,7 @@ function buildPageResponseConfig<T extends keyof BlockSuitePresets.AIActions>(
       items: [
         {
           name: 'Continue in chat',
-          icon: ChatWithAIIcon,
+          icon: ChatWithAiIcon(),
           handler: () => {
             reportResponse('result:continue-in-chat');
             AIProvider.slots.requestOpenWithChat.emit({ host });
@@ -198,7 +197,7 @@ function buildPageResponseConfig<T extends keyof BlockSuitePresets.AIActions>(
         },
         {
           name: 'Regenerate',
-          icon: RetryIcon,
+          icon: ResetIcon(),
           handler: () => {
             reportResponse('result:retry');
             panel.generate();
@@ -206,7 +205,7 @@ function buildPageResponseConfig<T extends keyof BlockSuitePresets.AIActions>(
         },
         {
           name: 'Discard',
-          icon: DiscardIcon,
+          icon: DeleteIcon(),
           handler: () => {
             panel.discard();
           },
@@ -223,7 +222,7 @@ export function buildErrorResponseConfig(panel: AffineAIPanelWidget) {
       items: [
         {
           name: 'Retry',
-          icon: RetryIcon,
+          icon: ResetIcon(),
           showWhen: () => true,
           handler: () => {
             reportResponse('result:retry');
@@ -232,7 +231,7 @@ export function buildErrorResponseConfig(panel: AffineAIPanelWidget) {
         },
         {
           name: 'Discard',
-          icon: DiscardIcon,
+          icon: DeleteIcon(),
           showWhen: () => !!panel.answer,
           handler: () => {
             panel.discard();
@@ -293,7 +292,7 @@ export function buildAIPanelConfig(
   const ctx = new AIContext();
   const searchService = framework.get(AINetworkSearchService);
   return {
-    answerRenderer: createTextRenderer(panel.host, { maxHeight: 320 }),
+    answerRenderer: createAIScrollableTextRenderer(panel.host, {}, 320, true),
     finishStateConfig: buildFinishConfig(panel, 'chat', ctx),
     generatingStateConfig: buildGeneratingConfig(),
     errorStateConfig: buildErrorConfig(panel),
